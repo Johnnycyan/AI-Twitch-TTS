@@ -25,7 +25,7 @@ var (
 	clients       = make(map[*websocket.Conn]string)
 	requestTime   = map[string]time.Time{}
 	voices        = map[string]string{"morgan": "dCJWUtGAvzXajvDoIJdj", "chris": "G17SuINrv2H9FC6nvetn", "stanley": "ARh3OFuUWNL07IeeFwD5"}
-	voice         = voices["chris"]
+	voice         = "chris"
 	alertFolder   = "alerts"
 	port          = "8034"
 	logInfo       = "info"
@@ -148,16 +148,18 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 				logger("Error reading alert sound: "+err.Error(), logError)
 			} else {
 				for client, clientChannel := range clients {
+					clientName := getClientName(fmt.Sprintf("%p", client))
 					if clientChannel == channel {
 						err := client.WriteMessage(websocket.BinaryMessage, alertSoundBytes)
 						if err != nil {
-							logger("Error sending alert sound to client: "+err.Error(), logError)
+							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError)
 							client.Close()
 							delete(clients, client)
+						} else {
+							logger("Alert sound sent to "+clientName+" on channel: "+channel, logInfo)
 						}
 					}
 				}
-				logger("Alert sound sent to channel: "+channel, logInfo)
 				time.Sleep(3 * time.Second)
 			}
 		}
@@ -165,13 +167,14 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 
 	for client, clientChannel := range clients {
 		if clientChannel == channel {
+			clientName := getClientName(fmt.Sprintf("%p", client))
 			err := client.WriteMessage(websocket.BinaryMessage, audioData)
 			if err != nil {
-				logger("Error sending audio data to client: "+err.Error(), logError)
+				logger("Error sending audio data to "+clientName+": "+err.Error(), logError)
 				client.Close()
 				delete(clients, client)
 			}
-			logger("Audio data sent to channel: "+channel, logInfo)
+			logger("Audio data sent to "+clientName+" on channel: "+channel, logInfo)
 		}
 	}
 }
@@ -196,7 +199,7 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 	voice = strings.ToLower(r.URL.Query().Get("voice"))
 	if voice == "" {
-		voice = voices["chris"]
+		voice = "chris"
 	}
 	// check if the voice is valid
 	if _, ok := voices[voice]; !ok {
@@ -214,11 +217,17 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if there is a connected client for the channel
-	for _, clientChannel := range clients {
+	log.Println(clients)
+	found := false
+	for client, clientChannel := range clients {
+		clientName := getClientName(fmt.Sprintf("%p", client))
 		if clientChannel == channel {
-			logger("Connected client for channel: "+channel, logDebug)
+			logger("Found client "+clientName+" for channel: "+channel, logDebug)
+			found = true
 			break
 		}
+	}
+	if found == false {
 		logger("No connected client for channel: "+channel, logInfo)
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
 		return
@@ -303,7 +312,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	channel := strings.ToLower(r.URL.Query().Get("channel"))
-	clientName := getClientName(r.RemoteAddr)
+	clientName := getClientName(fmt.Sprintf("%p", conn))
 	logger("Client "+clientName+" connected to channel: "+channel, logInfo)
 	clients[conn] = channel
 
