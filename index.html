@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Cyan TTS Client</title>
+</head>
+<body>
+	<h1></h1>
+
+	<script>
+		const urlParams = new URLSearchParams(window.location.search);
+		const channel = urlParams.get('channel');
+		const preGain = 20.0;
+		var serverURL = "{{.ServerURL}}";
+
+		let socket;
+
+		function connectWebSocket() {
+			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
+
+			socket.onmessage = event => {
+				const reader = new FileReader();
+				reader.onload = () => {
+					const audioData = reader.result;
+					const audioContext = new AudioContext();
+					audioContext.decodeAudioData(audioData, buffer => {
+						const source = audioContext.createBufferSource();
+						source.buffer = buffer;
+
+						const gainNode = audioContext.createGain();
+						gainNode.gain.value = preGain;
+
+						// Create a DynamicsCompressorNode
+						const compressor = audioContext.createDynamicsCompressor();
+						compressor.threshold.value = -50;
+						compressor.knee.value = 40;
+						compressor.ratio.value = 12;
+						compressor.attack.value = 0;
+						compressor.release.value = 0.25;
+
+						// Connect the nodes
+						source.connect(gainNode);
+						source.connect(compressor);
+						compressor.connect(audioContext.destination);
+
+						source.start();
+					});
+				};
+				reader.readAsArrayBuffer(event.data);
+			};
+
+			socket.onclose = () => {
+				console.log('WebSocket connection closed. Reconnecting...');
+				setTimeout(connectWebSocket, 1000); // Reconnect after 1 second
+			};
+		}
+
+		connectWebSocket();
+
+		// Add event listener for beforeunload event
+        window.addEventListener('beforeunload', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.close();
+            }
+        });
+	</script>
+</body>
+</html>
