@@ -22,12 +22,10 @@ import (
 )
 
 var (
-	elevenKey     string
 	clients       = make(map[*websocket.Conn]string)
 	requestTime   = map[string]time.Time{}
 	voices        = map[string]string{"morgan": "dCJWUtGAvzXajvDoIJdj", "chris": "G17SuINrv2H9FC6nvetn", "stanley": "ARh3OFuUWNL07IeeFwD5"}
 	voice         = voices["chris"]
-	pallyKey      string
 	alertFolder   = "alerts"
 	port          = "8034"
 	logInfo       = "info"
@@ -36,6 +34,8 @@ var (
 	logFountain   = "fountain"
 	addrToNameMap = make(map[string]string)
 	mapMutex      = sync.Mutex{}
+	elevenKey     string
+	pallyKey      string
 	serverURL     string
 	pallyChannel  string
 	ttsKey        string
