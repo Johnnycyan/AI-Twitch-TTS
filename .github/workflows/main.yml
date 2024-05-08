@@ -1,0 +1,55 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+    paths:
+      - '**.go'
+      - '**.mod'
+      - '**.sum'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        if: github.event_name == 'push' && (contains(github.event.head_commit.modified, '.go') || contains(github.event.head_commit.modified, '.mod') || contains(github.event.head_commit.modified, '.sum')) || github.event_name == 'workflow_dispatch'
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21
+
+      - name: Build for Windows
+        if: github.event_name == 'push' && (contains(github.event.head_commit.modified, '.go') || contains(github.event.head_commit.modified, '.mod') || contains(github.event.head_commit.modified, '.sum')) || github.event_name == 'workflow_dispatch'
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o ${{ github.event.repository.name }}.exe .
+
+      - name: Build for Linux
+        if: github.event_name == 'push' && (contains(github.event.head_commit.modified, '.go') || contains(github.event.head_commit.modified, '.mod') || contains(github.event.head_commit.modified, '.sum')) || github.event_name == 'workflow_dispatch'
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o ${{ github.event.repository.name }} .
+
+      - name: Generate version number
+        if: (github.ref == 'refs/heads/main' && github.event_name == 'push' && (contains(github.event.head_commit.modified, '.go') || contains(github.event.head_commit.modified, '.mod') || contains(github.event.head_commit.modified, '.sum'))) || github.event_name == 'workflow_dispatch'
+        run: echo "RELEASE_VERSION=$(date '+%Y.%m.%d-%H.%M.%S')" >> $GITHUB_ENV
+
+      - name: Create Release
+        if: (github.event_name == 'push' && (contains(github.event.head_commit.modified, '.go') || contains(github.event.head_commit.modified, '.mod') || contains(github.event.head_commit.modified, '.sum'))) || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref == 'refs/heads/main' && env.RELEASE_VERSION || github.ref_name }}
+          name: Release ${{ github.ref == 'refs/heads/main' && env.RELEASE_VERSION || github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ github.event.repository.name }}.exe
+            ${{ github.event.repository.name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
