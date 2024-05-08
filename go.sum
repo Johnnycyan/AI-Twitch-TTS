@@ -1,7 +1,7 @@
+github.com/Johnnycyan/elevenlabs v0.0.0-20240508223327-1ecab4d4173b h1:xYfH+sjaMYz6PDPf3TBk3q++juNpjVgOdxGqXsnDwq8=
+github.com/Johnnycyan/elevenlabs v0.0.0-20240508223327-1ecab4d4173b/go.mod h1:xbDkyMOUA23EUIS/h02To/g40nXWjfJA3vtW4JkvKAw=
 github.com/Pallinder/go-randomdata v1.2.0 h1:DZ41wBchNRb/0GfsePLiSwb0PHZmT67XY00lCDlaYPg=
 github.com/Pallinder/go-randomdata v1.2.0/go.mod h1:yHmJgulpD2Nfrm0cR9tI/+oAgRqCQQixsA8HyRZfV9Y=
-github.com/getcohesive/elevenlabs v0.0.2 h1:Pfc4/UznVijU8UDpKl3xlBCoy+/SuWk/yxJm/tljHFI=
-github.com/getcohesive/elevenlabs v0.0.2/go.mod h1:u6MRorbTwGSyc9J4jl2cP9dAZ8D2vrbQqtxFVXWqjeQ=
 github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/QY=
 github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZHL0uE0tcaY=
 github.com/joho/godotenv v1.5.1 h1:7eLL/+HRGLY0ldzfGMeQkb7vMd0as4CfYvUVzLqw0N0=

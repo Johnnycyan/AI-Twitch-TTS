@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Johnnycyan/elevenlabs/client"
+	"github.com/Johnnycyan/elevenlabs/client/types"
 	"github.com/Pallinder/go-randomdata"
-	"github.com/getcohesive/elevenlabs/client"
-	"github.com/getcohesive/elevenlabs/client/types"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 )
