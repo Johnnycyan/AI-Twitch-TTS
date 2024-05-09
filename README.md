@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/ec559a9f6bfd399b82bb44393651661b08aaf7ba/icons/folder-markdown-open.svg" width="100" alt="project-logo">
+  <img src="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" width="100" alt="project-logo">
 </p>
 <p align="center">
     <h1 align="center">AI-TWITCH-TTS</h1>
@@ -56,11 +56,11 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 > 1. Download latest release:
 >     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases)
 >  
-> 2. Create a voices.json file in the same directory and fill it like this:
+> 2. Create a voices.json file in the same directory and fill it like this (as many as you want, names are used in the url):
 > ```json
 > {
->     "voice1": "voice-id",
->     "voice2": "voice-id"
+>     "defaultvoice": "voice-id",
+>     "optionalvoice1": "voice-id"
 > }
 > ```
 >
