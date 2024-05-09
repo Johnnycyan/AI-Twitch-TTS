@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**.go'
+      - '**.sum'
+      - '**.mod'
     tags:
       - '*'
   workflow_dispatch:
