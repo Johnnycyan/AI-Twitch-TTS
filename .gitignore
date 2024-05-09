@@ -25,5 +25,11 @@ go.work
 # Environment variables file
 .env
 
+# bak files
+*.bak
+
+# json files
+*.json
+
 # compile script
 compile.bat

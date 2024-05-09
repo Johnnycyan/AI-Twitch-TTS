@@ -24,8 +24,9 @@ import (
 var (
 	clients       = make(map[*websocket.Conn]string)
 	requestTime   = map[string]time.Time{}
-	voices        = map[string]string{"morgan": "dCJWUtGAvzXajvDoIJdj", "chris": "G17SuINrv2H9FC6nvetn", "stanley": "ARh3OFuUWNL07IeeFwD5"}
-	voice         = "chris"
+	voices        = map[string]string{}
+	voice         string
+	defaultVoice  = "chris"
 	alertFolder   = "alerts"
 	port          = "8034"
 	logInfo       = "info"
@@ -87,7 +88,28 @@ func main() {
 	serverURL = os.Getenv("SERVER_URL")
 	pallyChannel = os.Getenv("PALLY_CHANNEL")
 	ttsKey = os.Getenv("TTS_KEY")
-	go connectToPallyWebsocket()
+	if elevenKey == "" || serverURL == "" || ttsKey == "" {
+		logger("Missing required environment variables", logError)
+		return
+	}
+	if pallyKey != "" && pallyChannel != "" {
+		go connectToPallyWebsocket()
+	}
+	// load voices from voices.json
+	file, err := os.ReadFile("voices.json")
+	if err != nil {
+		logger("Error reading voices.json: "+err.Error(), logError)
+		return
+	}
+	var fileVoices map[string]string
+	err = json.Unmarshal(file, &fileVoices)
+	if err != nil {
+		logger("Error unmarshalling voices.json: "+err.Error(), logError)
+		return
+	}
+	for k, v := range fileVoices {
+		voices[k] = v
+	}
 	http.HandleFunc("/tts", handleTTS)
 	http.HandleFunc("/ws", handleWebSocket)
 	http.HandleFunc("/", serveClient)
@@ -199,12 +221,12 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 	voice = strings.ToLower(r.URL.Query().Get("voice"))
 	if voice == "" {
-		voice = "chris"
+		voice = defaultVoice
 	}
 	// check if the voice is valid
 	if _, ok := voices[voice]; !ok {
 		logger("Invalid voice: "+voice+" so defaulting to Chris.", logInfo)
-		voice = voices["chris"]
+		voice = voices[defaultVoice]
 	} else {
 		logger("Voice selected: "+voice, logDebug)
 		voice = voices[voice]
