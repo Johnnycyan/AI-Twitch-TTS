@@ -26,7 +26,7 @@ var (
 	requestTime   = map[string]time.Time{}
 	voices        = map[string]string{}
 	voice         string
-	defaultVoice  = "chris"
+	defaultVoice  string
 	alertFolder   = "alerts"
 	port          = "8034"
 	logInfo       = "info"
@@ -109,6 +109,11 @@ func main() {
 	}
 	for k, v := range fileVoices {
 		voices[k] = v
+	}
+	// set the default voice to the first voice in the list
+	for k := range voices {
+		defaultVoice = k
+		break
 	}
 	http.HandleFunc("/tts", handleTTS)
 	http.HandleFunc("/ws", handleWebSocket)
