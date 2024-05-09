@@ -359,6 +359,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					}
 					conn.Close()
 					delete(clients, conn)
+					//remove clientname from map
+					mapMutex.Lock()
+					delete(addrToNameMap, fmt.Sprintf("%p", conn))
+					mapMutex.Unlock()
 					return
 				}
 			}
