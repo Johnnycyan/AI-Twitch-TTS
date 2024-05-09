@@ -21,7 +21,6 @@
   <summary>Table of Contents</summary><br>
 
 - [ Overview](#-overview)
-- [ Repository Structure](#-repository-structure)
 - [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
   - [ Installation](#-installation)
@@ -35,7 +34,7 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 
 ---
 
-##  Modules
+##  Modules<a name="-modules"></a>
 
 | File                                                                             | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ---                                                                              | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -44,13 +43,13 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 
 ---
 
-##  Getting Started
+##  Getting Started<a name="-getting-started"></a>
 
 **System Requirements:**
 
 * **Internet**
 
-###  Installation
+###  Installation<a name="-installation"></a>
 
 <h4>From <code>releases</code></h4>
 
@@ -77,7 +76,7 @@ SERVER_URL | URL of where the server will be hosted (no protocol) Ex: example.co
 PALLY_CHANNEL | The Twitch channel which corresponds to the Pally service (Optional)
 TTS_KEY | Secret key used to authenticate TTS generation
 
-###  Usage
+###  Usage<a name="-usage"></a>
 
 <h4>From <code>releases</code></h4>
 
