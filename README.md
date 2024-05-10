@@ -58,10 +58,16 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 >  
 > 2. Create a voices.json file in the same directory and fill it like this (as many as you want, names are used in the url):
 > ```json
-> {
->     "defaultvoice": "voice-id",
->     "optionalvoice1": "voice-id"
-> }
+> [
+>     {
+>         "name": "defaultvoice",
+>         "id": "voice-id"
+>     },
+>     {
+>         "name": "optionally-more-voices",
+>         "id": "voice-id"
+>     }
+> ]
 > ```
 >
 > 4. Create a .env file in the same directory

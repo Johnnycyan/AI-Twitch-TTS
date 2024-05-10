@@ -14,6 +14,12 @@
 
 		let socket;
 
+		function sendPing() {
+			if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send('ping');
+			}
+		}
+
 		function connectWebSocket() {
 			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
 
@@ -46,6 +52,7 @@
 					});
 				};
 				reader.readAsArrayBuffer(event.data);
+				socket.send('confirm');
 			};
 
 			socket.onclose = () => {
@@ -55,10 +62,12 @@
 		}
 
 		connectWebSocket();
+		setInterval(sendPing, 30000); // Send ping every 30 seconds
 
 		// Add event listener for beforeunload event
         window.addEventListener('beforeunload', () => {
             if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send('close');
                 socket.close();
             }
         });

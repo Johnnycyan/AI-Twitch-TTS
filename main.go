@@ -24,7 +24,7 @@ import (
 var (
 	clients       = make(map[*websocket.Conn]string)
 	requestTime   = map[string]time.Time{}
-	voices        = map[string]string{}
+	voices        []Voice
 	voice         string
 	defaultVoice  string
 	alertFolder   = "alerts"
@@ -41,6 +41,11 @@ var (
 	pallyChannel  string
 	ttsKey        string
 )
+
+type Voice struct {
+	Name  string `json:"name"`
+	Value string `json:"id"`
+}
 
 func logger(message string, level string) {
 	args := os.Args
@@ -101,19 +106,15 @@ func main() {
 		logger("Error reading voices.json: "+err.Error(), logError)
 		return
 	}
-	var fileVoices map[string]string
-	err = json.Unmarshal(file, &fileVoices)
+	err = json.Unmarshal(file, &voices)
 	if err != nil {
 		logger("Error unmarshalling voices.json: "+err.Error(), logError)
 		return
 	}
-	for k, v := range fileVoices {
-		voices[k] = v
-	}
 	// set the default voice to the first voice in the list
-	for k := range voices {
-		defaultVoice = k
-		break
+	if len(voices) > 0 {
+		defaultVoice = voices[0].Name
+		logger("Default voice: "+defaultVoice, logDebug)
 	}
 	http.HandleFunc("/tts", handleTTS)
 	http.HandleFunc("/ws", handleWebSocket)
@@ -183,7 +184,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 							client.Close()
 							delete(clients, client)
 						} else {
-							logger("Alert sound sent to "+clientName+" on channel: "+channel, logInfo)
+							logger("Alert sound sent to "+clientName+" on channel "+channel, logInfo)
 						}
 					}
 				}
@@ -201,7 +202,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 				client.Close()
 				delete(clients, client)
 			}
-			logger("Audio data sent to "+clientName+" on channel: "+channel, logInfo)
+			logger("Audio data sent to "+clientName+" on channel "+channel, logInfo)
 		}
 	}
 }
@@ -229,13 +230,22 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 		voice = defaultVoice
 	}
 	// check if the voice is valid
-	if _, ok := voices[voice]; !ok {
-		logger("Invalid voice: "+voice+" so defaulting to Chris.", logInfo)
-		voice = voices[defaultVoice]
+	var selectedVoice string
+	for _, v := range voices {
+		if v.Name == voice {
+			selectedVoice = v.Value
+			break
+		}
+	}
+
+	if selectedVoice == "" {
+		logger("Invalid voice: "+voice+" so defaulting to the first voice.", logInfo)
+		selectedVoice = voices[0].Value
 	} else {
 		logger("Voice selected: "+voice, logDebug)
-		voice = voices[voice]
 	}
+
+	voice = selectedVoice
 
 	if len(clients) == 0 {
 		logger("No connected clients", logInfo)
@@ -249,19 +259,19 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	for client, clientChannel := range clients {
 		clientName := getClientName(fmt.Sprintf("%p", client))
 		if clientChannel == channel {
-			logger("Found client "+clientName+" for channel: "+channel, logDebug)
+			logger("Found client "+clientName+" for channel "+channel, logDebug)
 			found = true
 			break
 		}
 	}
 	if found == false {
-		logger("No connected client for channel: "+channel, logInfo)
+		logger("No connected client for channel "+channel, logInfo)
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
 		return
 	}
 
 	if time.Since(requestTime[channel]) < 10*time.Second {
-		logger("Rate limit exceeded for channel: "+channel, logInfo)
+		logger("Rate limit exceeded for channel "+channel, logInfo)
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
@@ -340,12 +350,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	channel := strings.ToLower(r.URL.Query().Get("channel"))
 	clientName := getClientName(fmt.Sprintf("%p", conn))
-	logger("Client "+clientName+" connected to channel: "+channel, logInfo)
+	logger("Client "+clientName+" connected to channel "+channel, logInfo)
 	clients[conn] = channel
 
 	// Send periodic ping messages to the client
 	go func(clientName string, channel string, conn *websocket.Conn) {
-		pingTicker := time.NewTicker(10 * time.Second)
+		pingTicker := time.NewTicker(30 * time.Second)
 		defer pingTicker.Stop()
 
 		for {
@@ -353,7 +363,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			case <-pingTicker.C:
 				if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
 					if strings.Contains(err.Error(), "broken pipe") {
-						logger("Client "+clientName+" disconnected from channel: "+channel, logInfo)
+						logger("Client "+clientName+" disconnected from channel "+channel, logInfo)
 					} else {
 						logger("Error sending ping message: "+err.Error(), logError)
 					}
@@ -365,6 +375,69 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					mapMutex.Unlock()
 					return
 				}
+			}
+		}
+	}(clientName, channel, conn)
+
+	// Read messages from the client
+	go func(clientName string, channel string, conn *websocket.Conn) {
+		clientPingTicker := time.NewTicker(60 * time.Second)
+		// check for client ping messages and reset the ticker, otherwise close the connection if no ping is received after 60 seconds
+		go func() {
+			for {
+				select {
+				case <-clientPingTicker.C:
+					logger("Ping not received, closing connection for client "+clientName+" on channel "+channel, logInfo)
+					conn.Close()
+					delete(clients, conn)
+					//remove clientname from map
+					mapMutex.Lock()
+					delete(addrToNameMap, fmt.Sprintf("%p", conn))
+					mapMutex.Unlock()
+					return
+				}
+			}
+		}()
+		defer clientPingTicker.Stop()
+
+		for {
+			messageType, messageBytes, err := conn.ReadMessage()
+			if err != nil {
+				if strings.Contains(err.Error(), "use of closed network connection") {
+					logger("Client "+clientName+" disconnected from channel "+channel, logInfo)
+				} else {
+					logger("Error reading message from client "+clientName+" on channel "+channel+": "+err.Error(), logError)
+				}
+				conn.Close()
+				delete(clients, conn)
+				//remove clientname from map
+				mapMutex.Lock()
+				delete(addrToNameMap, fmt.Sprintf("%p", conn))
+				mapMutex.Unlock()
+				return
+			}
+
+			if messageType == websocket.TextMessage {
+				message := string(messageBytes)
+				if message == "ping" {
+					logger("Received ping from "+clientName+" on channel "+channel, logFountain)
+					clientPingTicker.Reset(60 * time.Second)
+				} else if message == "close" {
+					logger("Client "+clientName+" closed the connection on channel "+channel, logInfo)
+					conn.Close()
+					delete(clients, conn)
+					//remove clientname from map
+					mapMutex.Lock()
+					delete(addrToNameMap, fmt.Sprintf("%p", conn))
+					mapMutex.Unlock()
+					return
+				} else if message == "confirm" {
+					logger("Client "+clientName+" confirmed playing audio on channel "+channel, logInfo)
+				} else {
+					logger("Unknown message from "+clientName+" on channel "+channel+": "+message, logDebug)
+				}
+			} else if messageType == websocket.BinaryMessage {
+				logger("Received binary message from "+clientName+" on channel "+channel, logDebug)
 			}
 		}
 	}(clientName, channel, conn)
