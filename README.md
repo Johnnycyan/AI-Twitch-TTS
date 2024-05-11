@@ -74,7 +74,7 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 <h4>From <code>releases</code></h4>
 
 > 1. Download latest release:
->     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases)
+>     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases/latest)
 >
 > 2. Create a .env file in the same directory
 >
