@@ -55,32 +55,18 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 
 > 1. Download latest release:
 >     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases)
->  
-> 2. Create a voices.json file in the same directory and fill it like this (as many as you want, names are used in the url):
-> ```json
-> [
->     {
->         "name": "defaultvoice",
->         "id": "voice-id"
->     },
->     {
->         "name": "optionally-more-voices",
->         "id": "voice-id"
->     }
-> ]
-> ```
 >
-> 4. Create a .env file in the same directory
+> 2. Create a .env file in the same directory
 >
-> 5. Fill out required Environmental Variables explained below
+> 3. Fill out required Environmental Variables explained below and in the .env.example
 
 Variable      |     Description
 ------------- | -------------
 ELEVENLABS_KEY  | Elevenlabs API key
-PALLY_KEY  |  Pally.gg Key (Optional)
 SERVER_URL | URL of where the server will be hosted (no protocol) Ex: example.com
-PALLY_CHANNEL | The Twitch channel which corresponds to the Pally service (Optional)
 TTS_KEY | Secret key used to authenticate TTS generation
+PALLY_KEYS | Json string list of name/key pairs for pally (optional)
+VOICES | Json string list of name/id pairs for Elevenlabs voices
 
 ###  Usage<a name="-usage"></a>
 

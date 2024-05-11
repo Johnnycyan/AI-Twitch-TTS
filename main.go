@@ -36,15 +36,20 @@ var (
 	addrToNameMap = make(map[string]string)
 	mapMutex      = sync.Mutex{}
 	elevenKey     string
-	pallyKey      string
+	pallyKeys     []PallyKeys
 	serverURL     string
 	pallyChannel  string
 	ttsKey        string
 )
 
 type Voice struct {
-	Name  string `json:"name"`
-	Value string `json:"id"`
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type PallyKeys struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
 }
 
 func logger(message string, level string) {
@@ -83,13 +88,41 @@ func logger(message string, level string) {
 	}
 }
 
-func main() {
+func setupPally() {
+	keys := os.Getenv("PALLY_KEYS")
+	err := json.Unmarshal([]byte(keys), &pallyKeys)
+	if err != nil {
+		logger("Error unmarshalling Pally keys: "+err.Error(), logError)
+		return
+	}
+	for _, key := range pallyKeys {
+		if key.Name == "" || key.Key == "" {
+			continue
+		} else {
+			go connectToPallyWebsocket(key.Name, key.Key)
+		}
+	}
+}
+
+func setupVoices() {
+	voicesEnv := os.Getenv("VOICES")
+	err := json.Unmarshal([]byte(voicesEnv), &voices)
+	if err != nil {
+		logger("Error unmarshalling voices.json: "+err.Error(), logError)
+		return
+	}
+	if len(voices) > 0 {
+		defaultVoice = voices[0].Name
+		logger("Default voice: "+defaultVoice, logDebug)
+	}
+}
+
+func setupENV() {
 	err := godotenv.Load()
 	if err != nil {
 		logger("Error loading .env file", logError)
 	}
 	elevenKey = os.Getenv("ELEVENLABS_KEY")
-	pallyKey = os.Getenv("PALLY_KEY")
 	serverURL = os.Getenv("SERVER_URL")
 	pallyChannel = os.Getenv("PALLY_CHANNEL")
 	ttsKey = os.Getenv("TTS_KEY")
@@ -97,37 +130,29 @@ func main() {
 		logger("Missing required environment variables", logError)
 		return
 	}
-	if pallyKey != "" && pallyChannel != "" {
-		go connectToPallyWebsocket()
-	}
-	// load voices from voices.json
-	file, err := os.ReadFile("voices.json")
-	if err != nil {
-		logger("Error reading voices.json: "+err.Error(), logError)
-		return
-	}
-	err = json.Unmarshal(file, &voices)
-	if err != nil {
-		logger("Error unmarshalling voices.json: "+err.Error(), logError)
-		return
-	}
-	// set the default voice to the first voice in the list
-	if len(voices) > 0 {
-		defaultVoice = voices[0].Name
-		logger("Default voice: "+defaultVoice, logDebug)
-	}
+	setupPally()
+	setupVoices()
+}
+
+func setupHandlers() {
 	http.HandleFunc("/tts", handleTTS)
 	http.HandleFunc("/ws", handleWebSocket)
 	http.HandleFunc("/", serveClient)
+}
+
+func main() {
+	setupENV()
+	setupHandlers()
 	logger("Server listening on port: "+port, logInfo)
 	http.ListenAndServe(":"+port, nil)
 }
 
-func getAlertSound() (*os.File, bool) {
+func getAlertSound(channel string) (*os.File, bool) {
 	var alertSounds []string
+	channelAlertsFolder := fmt.Sprintf("%s/%s", alertFolder, channel)
 	//check if alert folder exists and if so get all .mp3 files in it
-	if _, err := os.Stat(alertFolder); err == nil {
-		files, err := os.ReadDir(alertFolder)
+	if _, err := os.Stat(channelAlertsFolder); err == nil {
+		files, err := os.ReadDir(channelAlertsFolder)
 		if err != nil {
 			logger("Error reading alert folder: "+err.Error(), logError)
 			return nil, false
@@ -144,14 +169,14 @@ func getAlertSound() (*os.File, bool) {
 
 	// check if there are any alert sounds in the folder
 	if len(alertSounds) == 0 {
-		logger("No alert sounds found in alert folder: "+alertFolder, logDebug)
+		logger("No alert sounds found in alert folder: "+channelAlertsFolder, logDebug)
 		return nil, false
 	}
 
 	// get a random alert sound from the list of alert sounds
 	randomAlertSound := alertSounds[rand.Intn(len(alertSounds))]
 	logger("Random alert sound selected: "+randomAlertSound, logDebug)
-	alertSound, err := os.Open(fmt.Sprintf("%s/%s", alertFolder, randomAlertSound))
+	alertSound, err := os.Open(fmt.Sprintf("%s/%s", channelAlertsFolder, randomAlertSound))
 	if err != nil {
 		logger("Error opening alert sound: "+err.Error(), logError)
 		return nil, false
@@ -168,7 +193,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 	}
 
 	if alert {
-		alertSound, alertExists := getAlertSound()
+		alertSound, alertExists := getAlertSound(channel)
 
 		if alertExists {
 			alertSoundBytes, err := io.ReadAll(alertSound)
@@ -233,14 +258,14 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	var selectedVoice string
 	for _, v := range voices {
 		if v.Name == voice {
-			selectedVoice = v.Value
+			selectedVoice = v.ID
 			break
 		}
 	}
 
 	if selectedVoice == "" {
 		logger("Invalid voice: "+voice+" so defaulting to the first voice.", logInfo)
-		selectedVoice = voices[0].Value
+		selectedVoice = voices[0].ID
 	} else {
 		logger("Voice selected: "+voice, logDebug)
 	}
@@ -304,7 +329,7 @@ func generateAudio(text string) ([]byte, error) {
 	}
 
 	go func() {
-		err := client.TTSStream(ctx, pipeWriter, text, "eleven_multilingual_v2", voice, types.SynthesisOptions{Stability: 0.40, SimilarityBoost: 1.00, Format: format, Style: 0.25})
+		err := client.TTSStream(ctx, pipeWriter, text, "eleven_multilingual_v2", voice, types.SynthesisOptions{Stability: 0.40, SimilarityBoost: 1.00, Format: format, Style: 0.00})
 		if err != nil {
 			logger(err.Error(), logError)
 		}
@@ -362,7 +387,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-pingTicker.C:
 				if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-					if strings.Contains(err.Error(), "broken pipe") {
+					if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "use of closed network connection") {
 						logger("Client "+clientName+" disconnected from channel "+channel, logInfo)
 					} else {
 						logger("Error sending ping message: "+err.Error(), logError)
@@ -463,9 +488,9 @@ func serveClient(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func connectToPallyWebsocket() {
+func connectToPallyWebsocket(channel string, pallyKey string) {
 	for {
-		if err := attemptConnectToPallyWebsocket(); err != nil {
+		if err := attemptConnectToPallyWebsocket(channel, pallyKey); err != nil {
 			logger("We need to restart the Pally connection", logInfo)
 			logger("Reconnecting to Pally...", logInfo)
 		} else {
@@ -503,7 +528,7 @@ type Page struct {
 	URL   string `json:"url"`
 }
 
-func handlePallyMessage(message []byte) {
+func handlePallyMessage(message []byte, channel string) {
 	logger("Received message from Pally", logDebug)
 
 	time_of_message := time.Now()
@@ -535,7 +560,7 @@ func handlePallyMessage(message []byte) {
 			return
 		}
 		for _, clientChannel := range clients {
-			if clientChannel == pallyChannel {
+			if clientChannel == channel {
 				found = true
 				break
 			}
@@ -564,11 +589,11 @@ func handlePallyMessage(message []byte) {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
 	logger(ttsMessage, logInfo)
-	go handleTTSAudio(nil, nil, ttsMessage, pallyChannel, true)
+	go handleTTSAudio(nil, nil, ttsMessage, channel, true)
 }
 
-func attemptConnectToPallyWebsocket() error {
-	logger("Connecting to Pally WebSocket...", logInfo)
+func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
+	logger("Connecting to Pally WebSocket on channel "+channel, logInfo)
 
 	// Create the WebSocket URL
 	url := fmt.Sprintf("wss://events.pally.gg?auth=%s&channel=firehose", pallyKey)
@@ -576,7 +601,7 @@ func attemptConnectToPallyWebsocket() error {
 	// Create a new WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		logger("Error connecting to Pally WebSocket: "+err.Error(), logError)
+		logger("Error connecting to Pally WebSocket on channel "+channel+": "+err.Error(), logError)
 		return err
 	}
 	defer conn.Close()
@@ -597,14 +622,14 @@ func attemptConnectToPallyWebsocket() error {
 	go func() {
 		for {
 			time.Sleep(60 * time.Second)
-			logger("Sending ping message to Pally", logFountain)
+			logger("Sending ping message to Pally on channel "+channel, logFountain)
 			err = conn.WriteMessage(websocket.TextMessage, []byte(`ping`))
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
-					logger("Stopping ping on old connection.", logInfo)
+					logger("Stopping ping on old connection for Pally on channel "+channel, logInfo)
 					return
 				} else {
-					logger("Error sending ping message to Pally: "+err.Error(), logError)
+					logger("Error sending ping message to Pally on channel "+channel+": "+err.Error(), logError)
 					return
 				}
 			}
@@ -618,20 +643,20 @@ func attemptConnectToPallyWebsocket() error {
 		if err != nil {
 			// check if it's just an EOF 1006 error
 			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
-				logger("Pally connection closed normally.", logInfo)
+				logger("Pally connection closed normally on channel "+channel, logInfo)
 				return err
 			} else {
-				logger("Error reading message from Pally: "+err.Error(), logError)
+				logger("Error reading message from Pally on channel "+channel+": "+err.Error(), logError)
 				return err
 			}
 		}
 
 		// check for pong messages
 		if string(message) == "pong" {
-			logger("Received pong message from Pally", logFountain)
+			logger("Received pong message from Pally on channel "+channel, logFountain)
 			continue
 		}
 
-		go handlePallyMessage(message)
+		go handlePallyMessage(message, channel)
 	}
 }

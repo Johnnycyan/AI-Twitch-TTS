@@ -20,6 +20,14 @@
 			}
 		}
 
+		function restart() {
+			if (socket && socket.readyState === WebSocket.OPEN) {
+				socket.send('close');
+                socket.close();
+				connectWebSocket();
+            }
+		}
+
 		function connectWebSocket() {
 			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
 
@@ -52,7 +60,16 @@
 					});
 				};
 				reader.readAsArrayBuffer(event.data);
-				socket.send('confirm');
+				reader.onloadend = () => {
+					console.log('Audio playback completed');
+					socket.send('confirm');
+				};
+				reader.onerror = error => {
+					console.error('Error reading audio data:', error);
+					restart();
+					clearInterval(restart);
+					setInterval(restart, 1800000);
+				};
 			};
 
 			socket.onclose = () => {
@@ -63,6 +80,7 @@
 
 		connectWebSocket();
 		setInterval(sendPing, 30000); // Send ping every 30 seconds
+		setInterval(restart, 1800000); // Restart every 30 minutes
 
 		// Add event listener for beforeunload event
         window.addEventListener('beforeunload', () => {
