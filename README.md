@@ -43,7 +43,7 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 |----|-------------------|---------------------------------------------------------------|
 | ⚙️  | **Architecture**  | Server-side application using WebSockets for real-time audio streaming, with client-side support for Twitch Text-to-Speech functionality. Maintains web server to handle requests and WebSocket connections effectively. |
 | 🔩 | **Code Quality**  | Well-structured codebase with clear separation of concerns, detailed inline comments, consistent naming conventions, and adherence to best practices. Follows the principles of clean code and maintainable architecture. |
-| 📄 | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints. However, there is room for improvement in the depth and coverage of documentation. |
+| 📄 | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints. |
 | 🔌 | **Integrations**  | Relies on external libraries like godotenv, go-randomdata, WebSocket for Go, and others to enhance functionality like environment variable loading, random data generation, WebSocket communication, and real-time audio streaming. |
 | 🧩 | **Modularity**    | Codebase exhibits modularity through separate modules for logging, WebSocket handling, text-to-speech requests, alerts retrieval, and Pally WebSocket connections. Modules are designed for reusability and maintainability. |
 
