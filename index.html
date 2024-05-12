@@ -24,7 +24,6 @@
 			if (socket && socket.readyState === WebSocket.OPEN) {
 				socket.send('close');
                 socket.close();
-				connectWebSocket();
             }
 		}
 
@@ -74,7 +73,7 @@
 
 			socket.onclose = () => {
 				console.log('WebSocket connection closed. Reconnecting...');
-				setTimeout(connectWebSocket, 1000); // Reconnect after 1 second
+				setTimeout(connectWebSocket, 500); // Reconnect after 500ms
 			};
 		}
 

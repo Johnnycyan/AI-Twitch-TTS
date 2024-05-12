@@ -51,32 +51,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	logger("Client "+clientName+" connected to channel "+channel, logInfo)
 	clients[conn] = channel
 
-	// Send periodic ping messages to the client
-	go func(clientName string, channel string, conn *websocket.Conn) {
-		pingTicker := time.NewTicker(30 * time.Second)
-		defer pingTicker.Stop()
-
-		for {
-			select {
-			case <-pingTicker.C:
-				if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-					if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "use of closed network connection") {
-						logger("Client "+clientName+" disconnected from channel "+channel, logInfo)
-					} else {
-						logger("Error sending ping message: "+err.Error(), logError)
-					}
-					conn.Close()
-					delete(clients, conn)
-					//remove clientname from map
-					mapMutex.Lock()
-					delete(addrToNameMap, fmt.Sprintf("%p", conn))
-					mapMutex.Unlock()
-					return
-				}
-			}
-		}
-	}(clientName, channel, conn)
-
 	// Read messages from the client
 	go func(clientName string, channel string, conn *websocket.Conn) {
 		clientPingTicker := time.NewTicker(60 * time.Second)
