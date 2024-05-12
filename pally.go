@@ -136,7 +136,7 @@ func handlePallyMessage(message []byte, channel string) {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
 	logger(ttsMessage, logInfo)
-	go handleTTSAudio(nil, nil, ttsMessage, channel, true)
+	go handleTTSAudio(nil, nil, ttsMessage, channel, true, 0.40, 1.00, 0.00)
 }
 
 func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {

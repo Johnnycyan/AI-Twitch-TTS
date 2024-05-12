@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,8 +44,8 @@ func setupVoices() {
 	}
 }
 
-func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel string, alert bool) {
-	audioData, err := generateAudio(text)
+func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel string, alert bool, stability float64, similarityBoost float64, style float64) {
+	audioData, err := generateAudio(text, stability, similarityBoost, style)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,6 +113,35 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	if voice == "" {
 		voice = defaultVoice
 	}
+	stabilityString := r.URL.Query().Get("stability")
+	similarityBoostString := r.URL.Query().Get("similarityBoost")
+	styleString := r.URL.Query().Get("style")
+
+	if stabilityString == "" {
+		stabilityString = "0.40"
+	}
+	if similarityBoostString == "" {
+		similarityBoostString = "1.00"
+	}
+	if styleString == "" {
+		styleString = "0.00"
+	}
+
+	stability, err := strconv.ParseFloat(stabilityString, 64)
+	if err != nil {
+		logger("Invalid stability: "+stabilityString+" so defaulting to 0.40", logInfo)
+		stability = 0.40
+	}
+	similarityBoost, err := strconv.ParseFloat(similarityBoostString, 64)
+	if err != nil {
+		logger("Invalid similarityBoost: "+similarityBoostString+" so defaulting to 1.00", logInfo)
+		similarityBoost = 1.00
+	}
+	style, err := strconv.ParseFloat(styleString, 64)
+	if err != nil {
+		logger("Invalid style: "+styleString+" so defaulting to 0.00", logInfo)
+		style = 0.00
+	}
 	// check if the voice is valid
 	var selectedVoice string
 	for _, v := range voices {
@@ -160,11 +190,11 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 	requestTime[channel] = time.Now()
 
-	go handleTTSAudio(w, r, text, channel, false)
+	go handleTTSAudio(w, r, text, channel, false, stability, similarityBoost, style)
 	return
 }
 
-func generateAudio(text string) ([]byte, error) {
+func generateAudio(text string, stability float64, similarityBoost float64, style float64) ([]byte, error) {
 	logger("Generating audio for text: "+text, logDebug)
 
 	ctx := context.Background()
@@ -187,7 +217,7 @@ func generateAudio(text string) ([]byte, error) {
 	}
 
 	go func() {
-		err := client.TTSStream(ctx, pipeWriter, text, "eleven_multilingual_v2", voice, types.SynthesisOptions{Stability: 0.40, SimilarityBoost: 1.00, Format: format, Style: 0.00})
+		err := client.TTSStream(ctx, pipeWriter, text, "eleven_multilingual_v2", voice, types.SynthesisOptions{Stability: stability, SimilarityBoost: similarityBoost, Format: format, Style: style})
 		if err != nil {
 			logger(err.Error(), logError)
 		}
