@@ -112,6 +112,15 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	if voice == "" {
 		voice = defaultVoice
 	}
+	if strings.HasPrefix(text, "[") {
+		// find the voice name in between the brackets and then remove it from the text
+		voiceStart := strings.Index(text, "[")
+		voiceEnd := strings.Index(text, "]")
+		if voiceStart != -1 && voiceEnd != -1 {
+			voice = strings.ToLower(text[voiceStart+1 : voiceEnd])
+			text = strings.TrimSpace(text[voiceEnd+1:])
+		}
+	}
 	stabilityString := r.URL.Query().Get("stability")
 	similarityBoostString := r.URL.Query().Get("similarityBoost")
 	styleString := r.URL.Query().Get("style")
@@ -144,7 +153,7 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	// check if the voice is valid
 	var selectedVoice string
 	for _, v := range voices {
-		if v.Name == voice {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
 			selectedVoice = v.ID
 			break
 		}
