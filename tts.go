@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -167,7 +166,6 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if there is a connected client for the channel
-	log.Println(clients)
 	found := false
 	for client, clientChannel := range clients {
 		clientName := getClientName(fmt.Sprintf("%p", client))
