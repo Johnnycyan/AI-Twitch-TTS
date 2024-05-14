@@ -106,7 +106,7 @@ VOICES | Json string list of name/id pairs for Elevenlabs voices
 > ```
 > http(s)://$SERVER_URL/?channel=<username>
 > ```
-> 3. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional and won't work unless building yourself anyways):
+> 3. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
 >    3. Using [voicename] at the start of the text field will allow you to choose a specific voice for that message (falls back to specified URL voice param or default voice)
 > ```
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
