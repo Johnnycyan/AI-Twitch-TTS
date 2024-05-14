@@ -34,6 +34,13 @@ func serveClient(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	// Set headers to prevent caching
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Header().Set("Surrogate-Control", "no-store")
+
 	err = tmpl.Execute(w, data)
 	if err != nil {
 		logger("Error executing template: "+err.Error(), logError)
