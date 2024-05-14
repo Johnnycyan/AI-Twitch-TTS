@@ -60,6 +60,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				select {
 				case <-clientPingTicker.C:
 					logger("Ping not received, closing connection for client "+clientName+" on channel "+channel, logInfo)
+					playing[channel] = false
 					conn.Close()
 					delete(clients, conn)
 					//remove clientname from map
@@ -96,6 +97,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					clientPingTicker.Reset(60 * time.Second)
 				} else if message == "close" {
 					logger("Client "+clientName+" closed the connection on channel "+channel, logInfo)
+					playing[channel] = false
 					conn.Close()
 					delete(clients, conn)
 					//remove clientname from map
@@ -105,6 +107,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					return
 				} else if message == "confirm" {
 					logger("Client "+clientName+" confirmed playing audio on channel "+channel, logInfo)
+					playing[channel] = false
 				} else {
 					logger("Unknown message from "+clientName+" on channel "+channel+": "+message, logDebug)
 				}

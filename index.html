@@ -55,14 +55,16 @@
 						source.connect(compressor);
 						compressor.connect(audioContext.destination);
 
+						// Set up the ended event listener
+                        source.onended = () => {
+                            console.log('Audio playback completed');
+                            socket.send('confirm');
+                        };
+
 						source.start();
 					});
 				};
 				reader.readAsArrayBuffer(event.data);
-				reader.onloadend = () => {
-					console.log('Audio playback completed');
-					socket.send('confirm');
-				};
 				reader.onerror = error => {
 					console.error('Error reading audio data:', error);
 					restart();

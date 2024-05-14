@@ -1,13 +1,19 @@
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
+
+# Ignore files without an extension
+*
+!.*/
+!*.*
+
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
-tts
 
 # Test binary, built with `go test -c`
 *.test
@@ -16,7 +22,7 @@ tts
 *.out
 
 # Dependency directories (remove the comment below to include it)
-alerts/
+# alerts/
 
 # Go workspace file
 go.work
@@ -25,11 +31,6 @@ go.work
 # Environment variables file
 .env
 
-# bak files
-*.bak
-
-# json files
-*.json
-
 # compile script
 compile.bat
+AI-Twitch-TTS

@@ -17,12 +17,13 @@ import (
 )
 
 var (
-	requestTime  = map[string]time.Time{}
-	voices       []Voice
-	voice        string
-	defaultVoice string
-	elevenKey    string
-	ttsKey       string
+	voices         []Voice
+	voice          string
+	defaultVoice   string
+	defaultVoiceID string
+	elevenKey      string
+	ttsKey         string
+	playing        = map[string]bool{}
 )
 
 type Voice struct {
@@ -39,6 +40,7 @@ func setupVoices() {
 	}
 	if len(voices) > 0 {
 		defaultVoice = voices[0].Name
+		defaultVoiceID = voices[0].ID
 		logger("Default voice: "+defaultVoice, logDebug)
 	}
 }
@@ -90,8 +92,108 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 	}
 }
 
+func validVoice(voice string) bool {
+	if voice == "" {
+		return false
+	}
+	for _, v := range voices {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+			return true
+		}
+	}
+	return false
+}
+
+func getVoiceID(voice string) (string, error) {
+	for _, v := range voices {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+			return v.ID, nil
+		}
+	}
+	return "", fmt.Errorf("Voice not found")
+}
+
+func configureVoice(fallbackVoice string, text string) (bool, string) {
+	// set the fallback voice to the default voice if no fallback voice is provided
+	if fallbackVoice == "" {
+		fallbackVoice = defaultVoice
+	}
+
+	// check if the text starts with a voice name in brackets
+	var customVoice string
+	if strings.HasPrefix(text, "[") {
+		// find the voice name in between the brackets and then remove it from the text
+		voiceStart := strings.Index(text, "[")
+		voiceEnd := strings.Index(text, "]")
+		if voiceStart != -1 && voiceEnd != -1 {
+			customVoice = strings.ToLower(text[voiceStart+1 : voiceEnd])
+			text = strings.TrimSpace(text[voiceEnd+1:])
+		}
+	} else {
+		customVoice = ""
+	}
+
+	if customVoice != "" {
+		logger("Voice found in message", logDebug)
+	}
+
+	var selectedVoice string
+	// check if the custom message voice is valid
+	if !validVoice(customVoice) {
+		if customVoice != "" {
+			logger("Invalid custom message voice: "+customVoice, logDebug)
+		}
+		// If the custom message voice is not valid then check if the fallback voice is valid
+		if !validVoice(fallbackVoice) {
+			logger("Invalid fallback voice: "+fallbackVoice+" so defaulting to "+defaultVoice, logInfo)
+			// If the fallback voice is not valid then default to the default voice
+			selectedVoice = defaultVoiceID
+		} else {
+			// If the fallback voice is valid then set the selected voice to the fallback voice
+			logger("Voice selected: "+fallbackVoice, logDebug)
+			var err error
+			selectedVoice, err = getVoiceID(fallbackVoice)
+			if err != nil {
+				logger("Error getting voice ID: "+err.Error(), logError)
+				return false, text
+			}
+		}
+	} else {
+		// If the custom message voice is valid then set the selected voice to the custom message voice
+		logger("Voice selected: "+customVoice, logDebug)
+		var err error
+		selectedVoice, err = getVoiceID(customVoice)
+		if err != nil {
+			logger("Error getting voice ID: "+err.Error(), logError)
+			return false, text
+		}
+	}
+
+	if selectedVoice == "" {
+		logger("Invalid voice so defaulting to "+defaultVoice, logInfo)
+		selectedVoice = defaultVoiceID
+	}
+
+	voice = selectedVoice
+
+	return true, text
+}
+
 func handleTTS(w http.ResponseWriter, r *http.Request) {
 	logger("Received TTS request", logInfo)
+
+	channel := strings.ToLower(r.URL.Query().Get("channel"))
+	if channel == "" {
+		http.Error(w, "channel query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	if playing[channel] {
+		logger("Last audio is still playing on "+channel, logInfo)
+		http.Error(w, "Wait for the last TTS to finish playing", http.StatusTooManyRequests)
+		return
+	}
+	playing[channel] = true
 
 	authKey := r.URL.Query().Get("key")
 	if authKey != ttsKey {
@@ -103,24 +205,13 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No text provided.", http.StatusBadRequest)
 		return
 	}
-	channel := strings.ToLower(r.URL.Query().Get("channel"))
-	if channel == "" {
-		http.Error(w, "channel query parameter is required", http.StatusBadRequest)
+	fallbackVoice := strings.ToLower(r.URL.Query().Get("voice"))
+	valid, text := configureVoice(fallbackVoice, text)
+	if !valid {
+		http.Error(w, "No valid voice found in URL or message", http.StatusBadRequest)
 		return
 	}
-	voice = strings.ToLower(r.URL.Query().Get("voice"))
-	if voice == "" {
-		voice = defaultVoice
-	}
-	if strings.HasPrefix(text, "[") {
-		// find the voice name in between the brackets and then remove it from the text
-		voiceStart := strings.Index(text, "[")
-		voiceEnd := strings.Index(text, "]")
-		if voiceStart != -1 && voiceEnd != -1 {
-			voice = strings.ToLower(text[voiceStart+1 : voiceEnd])
-			text = strings.TrimSpace(text[voiceEnd+1:])
-		}
-	}
+
 	stabilityString := r.URL.Query().Get("stability")
 	similarityBoostString := r.URL.Query().Get("similarityBoost")
 	styleString := r.URL.Query().Get("style")
@@ -150,23 +241,6 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 		logger("Invalid style: "+styleString+" so defaulting to 0.00", logInfo)
 		style = 0.00
 	}
-	// check if the voice is valid
-	var selectedVoice string
-	for _, v := range voices {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
-			selectedVoice = v.ID
-			break
-		}
-	}
-
-	if selectedVoice == "" {
-		logger("Invalid voice: "+voice+" so defaulting to the first voice.", logInfo)
-		selectedVoice = voices[0].ID
-	} else {
-		logger("Voice selected: "+voice, logDebug)
-	}
-
-	voice = selectedVoice
 
 	if len(clients) == 0 {
 		logger("No connected clients", logInfo)
@@ -189,13 +263,6 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
 		return
 	}
-
-	if time.Since(requestTime[channel]) < 10*time.Second {
-		logger("Rate limit exceeded for channel "+channel, logInfo)
-		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-		return
-	}
-	requestTime[channel] = time.Now()
 
 	go handleTTSAudio(w, r, text, channel, false, stability, similarityBoost, style)
 	return
