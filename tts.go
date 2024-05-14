@@ -11,9 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"regexp"
+
 	"github.com/Johnnycyan/elevenlabs/client"
 	"github.com/Johnnycyan/elevenlabs/client/types"
 	"github.com/gorilla/websocket"
+	"github.com/sandisuryadi36/number-to-words/convert"
 )
 
 var (
@@ -179,6 +182,36 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 	return true, text
 }
 
+func convertNumberToWords(text string) string {
+	// find numbers in the string, convert them to words and replace them in the string. I want to find them even if it's for example xdd34624 so not only numbers that are separated by spaces
+	// I'm using a regex to find the numbers and then convert them to words
+
+	// find all numbers in the string
+	re := regexp.MustCompile(`\d+(\.\d+)?`) // example: 123, 123.48, xdd33444 -> 123, 123.48, 33444
+	numbers := re.FindAllString(text, -1)
+
+	if numbers == nil {
+		return text
+	}
+
+	// add a space between any string character and number
+	text = re.ReplaceAllString(text, " $0") // example: 123, 123.48, xdd33444 -> 123, 123.48, xdd 33444
+
+	// convert the numbers to words
+	for _, number := range numbers {
+		// convert the number to words
+		words := convert.NumberToWords(number, "en")
+
+		// replace the number in the string with the words
+		text = strings.Replace(text, number, words, -1)
+	}
+
+	text = strings.TrimSpace(text)
+	text = strings.Replace(text, "  ", " ", -1)
+
+	return text
+}
+
 func handleTTS(w http.ResponseWriter, r *http.Request) {
 	logger("Received TTS request", logInfo)
 
@@ -211,6 +244,8 @@ func handleTTS(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No valid voice found in URL or message", http.StatusBadRequest)
 		return
 	}
+
+	text = convertNumberToWords(text)
 
 	stabilityString := r.URL.Query().Get("stability")
 	similarityBoostString := r.URL.Query().Get("similarityBoost")

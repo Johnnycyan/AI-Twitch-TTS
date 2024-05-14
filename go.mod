@@ -7,5 +7,9 @@ require (
 	github.com/Pallinder/go-randomdata v1.2.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
+)
+
+require (
+	github.com/sandisuryadi36/number-to-words v1.0.2 // indirect
 	golang.org/x/net v0.17.0 // indirect
 )
