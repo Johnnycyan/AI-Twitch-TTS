@@ -135,8 +135,23 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
+	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo)
-	go handleTTSAudio(nil, nil, ttsMessage, channel, true, 0.40, 1.00, 0.00)
+	request := Request{
+		Channel: channel,
+		Text:    ttsMessage,
+		Time:    requestTime,
+		Voice: TTSSettings{
+			Voice:           defaultVoice,
+			Stability:       0.40,
+			SimilarityBoost: 1.00,
+			Style:           0.00,
+		},
+	}
+
+	// Add the request to the queue
+	requests = append(requests, request)
+	go handleTTSAudio(nil, nil, request, true)
 }
 
 func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {

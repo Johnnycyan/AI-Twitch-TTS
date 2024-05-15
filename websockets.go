@@ -15,6 +15,7 @@ var (
 	clients       = make(map[*websocket.Conn]string)
 	addrToNameMap = make(map[string]string)
 	mapMutex      = sync.Mutex{}
+	playing       = make(map[string]bool)
 )
 
 func generateRandomName() string {
@@ -39,6 +40,24 @@ func getClientName(remoteAddr string) string {
 	return name
 }
 
+func clearChannelRequests(channel string) {
+	defer func() {
+		if r := recover(); r != nil {
+			requests = nil
+			logger("Recovered from panic in clearChannelRequests: "+fmt.Sprintf("%v", r), logError)
+		}
+	}()
+	for i := len(requests) - 1; i >= 0; i-- {
+		if i >= len(requests) {
+			continue
+		}
+		request := requests[i]
+		if request.Channel == channel {
+			requests = append(requests[:i], requests[i+1:]...)
+		}
+	}
+}
+
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -60,7 +79,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				select {
 				case <-clientPingTicker.C:
 					logger("Ping not received, closing connection for client "+clientName+" on channel "+channel, logInfo)
-					playing[channel] = false
+					clearChannelRequests(channel)
 					conn.Close()
 					delete(clients, conn)
 					//remove clientname from map
@@ -97,7 +116,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					clientPingTicker.Reset(60 * time.Second)
 				} else if message == "close" {
 					logger("Client "+clientName+" closed the connection on channel "+channel, logInfo)
-					playing[channel] = false
+					clearChannelRequests(channel)
 					conn.Close()
 					delete(clients, conn)
 					//remove clientname from map
@@ -105,9 +124,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					delete(addrToNameMap, fmt.Sprintf("%p", conn))
 					mapMutex.Unlock()
 					return
-				} else if message == "confirm" {
-					logger("Client "+clientName+" confirmed playing audio on channel "+channel, logInfo)
-					playing[channel] = false
+				} else if strings.Contains(message, "confirm") {
+					// split the message by spaces and get the last element
+					// this is the timestamp of the audio that the client is confirming
+					timestamp := strings.Split(message, " ")[1]
+					logger("Client "+clientName+" confirmed playing audio for "+timestamp+" on channel "+channel, logInfo)
+					// remove timestamp from playing map
+					delete(playing, timestamp)
+					logger("Playing map: "+fmt.Sprintf("%v", playing), logDebug)
 				} else {
 					logger("Unknown message from "+clientName+" on channel "+channel+": "+message, logDebug)
 				}
@@ -116,4 +140,19 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}(clientName, channel, conn)
+}
+
+func sendTextMessage(channel string, message string) {
+	for client, clientChannel := range clients {
+		if clientChannel == channel {
+			clientName := getClientName(fmt.Sprintf("%p", client))
+			err := client.WriteMessage(websocket.TextMessage, []byte(message))
+			if err != nil {
+				logger("Error sending text message to "+clientName+": "+err.Error(), logError)
+				client.Close()
+				delete(clients, client)
+			}
+			logger("Text message sent to "+clientName+" on channel "+channel, logInfo)
+		}
+	}
 }

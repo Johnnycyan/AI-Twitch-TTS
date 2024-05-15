@@ -11,6 +11,7 @@
 		const channel = urlParams.get('channel');
 		const preGain = 20.0;
 		var serverURL = "{{.ServerURL}}";
+		let requestTime;
 
 		let socket;
 
@@ -31,6 +32,20 @@
 			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
 
 			socket.onmessage = event => {
+				// Check if event.data is a string
+				if (typeof event.data === 'string') {
+					// if the event starts with "start", then it is a request to start the audio, split it by spaces and get the second element
+					if (event.type === 'message' && event.data.startsWith('start')) {
+						requestTime = event.data.split(' ')[1];
+						console.log('Audio playback requested for:', requestTime);
+						return;
+					}
+				} else if (event.data instanceof Blob) {
+					console.log('Received audio data:', event.data);
+				} else {
+					console.error('Invalid data received:', event.data);
+					return;
+				}
 				const reader = new FileReader();
 				reader.onload = () => {
 					const audioData = reader.result;
@@ -58,7 +73,8 @@
 						// Set up the ended event listener
                         source.onended = () => {
                             console.log('Audio playback completed');
-                            socket.send('confirm');
+                            socket.send('confirm ' + requestTime);
+							requestTime = null;
                         };
 
 						source.start();

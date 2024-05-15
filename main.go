@@ -2,24 +2,46 @@ package main
 
 import (
 	"html/template"
+	//"log"
 	"net/http"
+	//"os"
 )
 
 var (
-	port = "8034"
+	port = "8039"
 )
 
 func setupHandlers() {
-	http.HandleFunc("/tts", handleTTS)
+	http.HandleFunc("/voices", listVoices)
+	http.HandleFunc("/tts", handleRequest)
 	http.HandleFunc("/ws", handleWebSocket)
 	http.HandleFunc("/", serveClient)
 }
 
 func main() {
+	// args := os.Args
+	// if len(args) > 1 {
+	// 	port = args[1]
+	// } else {
+	// 	log.Fatal("Port not provided")
+	// }
 	setupENV()
 	setupHandlers()
+
 	logger("Server listening on port: "+port, logInfo)
 	http.ListenAndServe(":"+port, nil)
+}
+
+func listVoices(w http.ResponseWriter, _ *http.Request) {
+	var responseString string
+	for i, voice := range voices {
+		if i == len(voices)-1 {
+			responseString += voice.Name
+		} else {
+			responseString += voice.Name + ", "
+		}
+	}
+	w.Write([]byte(responseString))
 }
 
 func serveClient(w http.ResponseWriter, r *http.Request) {
