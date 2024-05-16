@@ -131,7 +131,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					logger("Client "+clientName+" confirmed playing audio for "+timestamp+" on channel "+channel, logInfo)
 					// remove timestamp from playing map
 					delete(playing, timestamp)
-					logger("Playing map: "+fmt.Sprintf("%v", playing), logDebug)
 				} else {
 					logger("Unknown message from "+clientName+" on channel "+channel+": "+message, logDebug)
 				}
