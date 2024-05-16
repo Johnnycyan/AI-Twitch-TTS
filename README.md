@@ -22,6 +22,7 @@
   <summary>Table of Contents</summary><br>
 
 - [ Overview](#-overview)
+- [ Example](#-example)
 - [ Features](#-features)
 - [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
@@ -36,6 +37,10 @@
 AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interactive streaming experiences. The project orchestrates WebSocket connections for audio streaming, processes chat requests, and interfaces with external APIs for voice synthesis. It offers customizable voice options, real-time chat handling, and automated websocket reconnections, enhancing viewer engagement on Twitch streams. The projects modular design ensures a seamless integration of dependencies, automated testing, and CI/CD workflows for efficient development and deployment processes.
 
 ---
+
+##  Example Usage from [Samifying](https://www.twitch.tv/samifying)<a name="-example"></a>
+https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9964-2773146901d8
+
 
 ##  Features<a name="-features"></a>
 
