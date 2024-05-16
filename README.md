@@ -39,6 +39,8 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 ---
 
 ##  Example Usage from [Samifying](https://www.twitch.tv/samifying)<a name="-example"></a>
+Sound effects from Dev branch currently. Will be pushed to Main when stable.
+
 https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9964-2773146901d8
 
 
