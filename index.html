@@ -6,105 +6,146 @@
 <body>
 	<h1></h1>
 
+	{{ if .SentryURL }}
+    <script src="{{ .SentryURL }}" crossorigin="anonymous"></script>
+    {{ end }}
+
 	<script>
 		const urlParams = new URLSearchParams(window.location.search);
 		const channel = urlParams.get('channel');
-		const preGain = 20.0;
+		const preGain = 10.0;
 		var serverURL = "{{.ServerURL}}";
 		let requestTime;
 
 		let socket;
 
+		function logWithTimestamp(message) {
+			const now = new Date();
+			const timeString = now.toTimeString().split(' ')[0]; // Get the time part and remove milliseconds
+			console.log(`[${timeString}] ${message}`);
+		}
+
+		function errorWithTimestamp(message) {
+			const now = new Date();
+			const timeString = now.toTimeString().split(' ')[0]; // Get the time part and remove milliseconds
+			console.error(`[${timestamp}] ${message}`);
+		}
+
 		function sendPing() {
-			if (socket && socket.readyState === WebSocket.OPEN) {
+			try {
+				logWithTimestamp('Sending ping...');
 				socket.send('ping');
+			} catch (error) {
+				errorWithTimestamp('Error sending ping:', error);
 			}
 		}
 
 		function restart() {
-			if (socket && socket.readyState === WebSocket.OPEN) {
-				socket.send('close');
-                socket.close();
-            }
+			try {
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					clearInterval(sendPing);
+					socket.send('close');
+					socket.close();
+				}
+			} catch (error) {
+				errorWithTimestamp('Error restart WebSocket:', error);
+			}
 		}
 
 		function connectWebSocket() {
 			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
 
 			socket.onmessage = event => {
-				// Check if event.data is a string
-				if (typeof event.data === 'string') {
-					// if the event starts with "start", then it is a request to start the audio, split it by spaces and get the second element
-					if (event.type === 'message' && event.data.startsWith('start')) {
-						requestTime = event.data.split(' ')[1];
-						console.log('Audio playback requested for:', requestTime);
+				try {
+					// Check if event.data is a string
+					if (typeof event.data === 'string') {
+						// if the event starts with "start", then it is a request to start the audio, split it by spaces and get the second element
+						if (event.type === 'message' && event.data.startsWith('start')) {
+							requestTime = event.data.split(' ')[1];
+							logWithTimestamp('Audio playback requested for:', requestTime);
+							return;
+						}
+					} else if (event.data instanceof Blob) {
+						logWithTimestamp('Received audio data:', event.data);
+					} else {
+						logWithTimestamp('Invalid data received:', event.data);
 						return;
 					}
-				} else if (event.data instanceof Blob) {
-					console.log('Received audio data:', event.data);
-				} else {
-					console.error('Invalid data received:', event.data);
-					return;
-				}
-				const reader = new FileReader();
-				reader.onload = () => {
-					const audioData = reader.result;
-					const audioContext = new AudioContext();
-					audioContext.decodeAudioData(audioData, buffer => {
-						const source = audioContext.createBufferSource();
-						source.buffer = buffer;
+					const reader = new FileReader();
+					reader.onload = () => {
+						const audioData = reader.result;
+						const audioContext = new AudioContext();
+						audioContext.decodeAudioData(audioData, buffer => {
+							const source = audioContext.createBufferSource();
+							source.buffer = buffer;
 
-						const gainNode = audioContext.createGain();
-						gainNode.gain.value = preGain;
+							const gainNode = audioContext.createGain();
+							gainNode.gain.value = preGain;
 
-						// Create a DynamicsCompressorNode
-						const compressor = audioContext.createDynamicsCompressor();
-						compressor.threshold.value = -50;
-						compressor.knee.value = 40;
-						compressor.ratio.value = 12;
-						compressor.attack.value = 0;
-						compressor.release.value = 0.25;
+							// Create a DynamicsCompressorNode
+							const compressor = audioContext.createDynamicsCompressor();
+							compressor.threshold.value = -20;
+							compressor.knee.value = 40;
+							compressor.ratio.value = 12;
+							compressor.attack.value = 0;
+							compressor.release.value = 0.25;
 
-						// Connect the nodes
-						source.connect(gainNode);
-						source.connect(compressor);
-						compressor.connect(audioContext.destination);
+							// Connect the nodes
+							source.connect(gainNode);
+							source.connect(compressor);
+							compressor.connect(audioContext.destination);
 
-						// Set up the ended event listener
-                        source.onended = () => {
-                            console.log('Audio playback completed');
-                            socket.send('confirm ' + requestTime);
-							requestTime = null;
-                        };
+							// Set up the ended event listener
+							source.onended = () => {
+								logWithTimestamp('Audio playback completed');
+								socket.send('confirm ' + requestTime);
+								requestTime = null;
+							};
 
-						source.start();
-					});
-				};
-				reader.readAsArrayBuffer(event.data);
-				reader.onerror = error => {
-					console.error('Error reading audio data:', error);
+							source.start();
+						});
+					};
+					reader.readAsArrayBuffer(event.data);
+					reader.onerror = error => {
+						errorWithTimestamp('Error reading audio data:', error);
+						logWithTimestamp('Restarting...');
+						restart();
+						clearInterval(restart);
+						setInterval(restart, 1800000);
+					};
+				} catch (error) {
+					errorWithTimestamp('Error processing audio data:', error);
+					logWithTimestamp('Restarting...');
 					restart();
 					clearInterval(restart);
 					setInterval(restart, 1800000);
-				};
+				}
 			};
 
 			socket.onclose = () => {
-				console.log('WebSocket connection closed. Reconnecting...');
+				logWithTimestamp('WebSocket connection closed. Reconnecting...');
 				setTimeout(connectWebSocket, 500); // Reconnect after 500ms
+			};
+
+			socket.onload = () => {
+				logWithTimestamp('WebSocket connection established');
 			};
 		}
 
 		connectWebSocket();
-		setInterval(sendPing, 30000); // Send ping every 30 seconds
+		setInterval(sendPing, 20000); // Send ping every 20 seconds
 		setInterval(restart, 1800000); // Restart every 30 minutes
 
 		// Add event listener for beforeunload event
         window.addEventListener('beforeunload', () => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-				socket.send('close');
-                socket.close();
-            }
+			try {
+				if (socket && socket.readyState === WebSocket.OPEN) {
+					socket.send('close');
+					socket.close();
+				}
+			} catch (error) {
+				errorWithTimestamp('Error closing WebSocket:', error);
+			}
         });
 	</script>
 </body>

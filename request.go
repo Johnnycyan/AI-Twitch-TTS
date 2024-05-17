@@ -139,14 +139,17 @@ func getURLParams(r *http.Request) *URLParams {
 	return params
 }
 
-func addPartsToRequest(parts []Part, requestTime string, params *URLParams) {
+func addPartsToRequest(parts []Part, requestTime string, params *URLParams) error {
 	logger("Adding parts to request", logDebug)
 	for i, part := range parts {
 		if part.Type == "text" {
 			voice, err := getVoiceID(params.FallbackVoice)
 			if err != nil {
 				logger("Error getting voice ID: "+err.Error(), logError)
-				return
+				if len(requests) > 0 {
+					clearChannelRequests(params.Channel)
+				}
+				return fmt.Errorf("Invalid fallback voice")
 			}
 			parts[i].Text = convertNumberToWords(part.Text)
 			requests = append(requests, Request{
@@ -167,7 +170,10 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) {
 			voice, err := getVoiceID(part.Voice)
 			if err != nil {
 				logger("Error getting voice ID: "+err.Error(), logError)
-				return
+				if len(requests) > 0 {
+					clearChannelRequests(params.Channel)
+				}
+				return fmt.Errorf("You used an invalid voice tag: " + part.Voice)
 			}
 			parts[i].Text = convertNumberToWords(part.Text)
 			requests = append(requests, Request{
@@ -195,6 +201,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) {
 			})
 		}
 	}
+	return nil
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -213,6 +220,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	if len(clients) == 0 {
 		logger("No connected clients", logInfo)
 		http.Error(w, "No connected clients", http.StatusNotFound)
+		if len(requests) > 0 {
+			clearChannelRequests(params.Channel)
+		}
 		return
 	}
 
@@ -229,6 +239,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	if found == false {
 		logger("No connected client for channel "+params.Channel, logInfo)
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
+		if len(requests) > 0 {
+			clearChannelRequests(params.Channel)
+		}
 		return
 	}
 
@@ -237,19 +250,43 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		params.FallbackVoice = defaultVoice
 	}
 
-	messages := getTextParts(params.Text)
+	messages, err := getTextParts(params.Text)
+	if err != nil {
+		logger("Error getting text parts: "+err.Error(), logError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	parts := getFormattedParts(messages)
+	parts, err := getFormattedParts(messages)
+	if err != nil {
+		logger("Error getting formatted parts: "+err.Error(), logError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	logger("Parts: "+fmt.Sprintf("%+v", parts), logDebug)
 
-	addPartsToRequest(parts, requestTime, params)
+	err = addPartsToRequest(parts, requestTime, params)
+	if err != nil {
+		logger("Error adding parts to request: "+err.Error(), logError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	processRequest(w, r)
+	processRequest(w, r, params)
 }
 
-func getTextParts(text string) []string {
+func getTextParts(text string) ([]string, error) {
 	logger("Getting text parts", logDebug)
+	// check if message starts with a tag
+	if !strings.HasPrefix(text, "[") {
+		if strings.Contains(text, "[e-") || strings.Contains(text, "[v-") {
+			// if it doesn't start with a tag but contains a tag, this is an error
+			logger("Text contains a tag but doesn't start with a tag: "+text, logError)
+			return nil, fmt.Errorf("If you use any tags, the text must start with a tag.")
+		}
+		return []string{text}, nil
+	}
 	// Compile a regular expression to find the tags and the following text
 	re := regexp.MustCompile(`(\[[^\]]+\][^[]*)`)
 
@@ -258,13 +295,13 @@ func getTextParts(text string) []string {
 
 	// If no matches are found, return the original text as a single-element slice
 	if len(matches) == 0 {
-		return []string{text}
+		return []string{text}, nil
 	}
 
-	return matches
+	return matches, nil
 }
 
-func getFormattedParts(parts []string) []Part {
+func getFormattedParts(parts []string) ([]Part, error) {
 	logger("Getting formatted parts", logDebug)
 	var result []Part
 
@@ -285,6 +322,10 @@ func getFormattedParts(parts []string) []Part {
 					Voice: tag[2:], // Remove "v-" prefix
 				})
 			} else if strings.HasPrefix(tag, "e-") {
+				if text != "" {
+					// It's an effect tag with text, this shouldn't happen so return an error
+					return nil, fmt.Errorf("Looks like you might have missed a voice tag. Affected text: " + text)
+				}
 				// It's an effect tag, remove the "e-" prefix
 				result = append(result, Part{
 					Type:   "effect",
@@ -300,7 +341,7 @@ func getFormattedParts(parts []string) []Part {
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 func sendAudio(request Request, audioData []byte) {
@@ -317,6 +358,9 @@ func sendAudio(request Request, audioData []byte) {
 				logger("Error sending audio data to "+clientName+": "+err.Error(), logError)
 				client.Close()
 				delete(clients, client)
+				if len(requests) > 0 {
+					clearChannelRequests(request.Channel)
+				}
 			}
 			logger("Audio data sent to "+clientName+" on channel "+request.Channel, logInfo)
 		}
@@ -327,23 +371,32 @@ type AudioData struct {
 	Audio []byte
 }
 
-func processRequest(w http.ResponseWriter, _ *http.Request) {
+func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 	logger("Processing request", logInfo)
 	var audio []byte
 	var audioData []AudioData
 	var err error
+	var bad = false
 	for _, request := range requests {
 		if request.Type == "text" || request.Type == "voice" {
 			logger("Processing text request", logInfo)
 			audio, err = generateAudio(request)
 			if err != nil {
 				logger("Error generating audio: "+err.Error(), logError)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				bad = true
+				if len(requests) > 0 {
+					clearChannelRequests(params.Channel)
+				}
+				http.Error(w, "Error generating audio. Check your inputs.", http.StatusInternalServerError)
 				return
 			}
 			if audio == nil || len(audio) == 0 {
 				logger("No audio data generated", logError)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				bad = true
+				if len(requests) > 0 {
+					clearChannelRequests(params.Channel)
+				}
+				http.Error(w, "Error getting audio data. Check your inputs.", http.StatusInternalServerError)
 				return
 			}
 			audioData = append(audioData, AudioData{Audio: audio})
@@ -352,7 +405,11 @@ func processRequest(w http.ResponseWriter, _ *http.Request) {
 			audio, found := getEffectSound(request.Effect)
 			if !found {
 				logger("Effect sound not found", logError)
-				http.Error(w, "You specified an effect that doesn't exist", http.StatusBadRequest)
+				bad = true
+				if len(requests) > 0 {
+					clearChannelRequests(params.Channel)
+				}
+				http.Error(w, "You specified an effect that doesn't exist: "+request.Effect, http.StatusBadRequest)
 				return
 			}
 			audioData = append(audioData, AudioData{Audio: audio})
@@ -360,13 +417,46 @@ func processRequest(w http.ResponseWriter, _ *http.Request) {
 		}
 	}
 
-	for i, data := range audioData {
-		sendAudio(requests[i], data.Audio)
-		time.Sleep(200 * time.Millisecond) // Wait for value to change
-		for playing[requests[i].Time] {
-			time.Sleep(50 * time.Millisecond)
+	// var allAudio []byte
+	// if !bad {
+	// 	// combine the audio data into a single variable
+	// 	for i, data := range audioData {
+	// 		if i == 0 {
+	// 			allAudio = data.Audio
+	// 		} else {
+	// 			allAudio = append(allAudio, data.Audio...)
+	// 		}
+	// 	}
+	// 	sendAudio(requests[0], allAudio)
+	// }
+
+	var replyVerifyTicker = time.NewTicker(120 * time.Second)
+	if !bad {
+		for i, data := range audioData {
+			replyVerifyTicker.Reset(120 * time.Second)
+			sendAudio(requests[i], data.Audio)
+			time.Sleep(200 * time.Millisecond) // Wait for value to change
+			for playing[requests[i].Time] {
+				select {
+				case <-replyVerifyTicker.C:
+					logger("No reply received for "+requests[i].Time, logInfo)
+					clearChannelRequests(requests[i].Channel)
+					http.Error(w, "No reply received for "+requests[i].Time, http.StatusRequestTimeout)
+					return
+				default:
+					time.Sleep(50 * time.Millisecond)
+				}
+			}
 		}
+	} else {
+		logger("Error processing request", logError)
+		if len(requests) > 0 {
+			clearChannelRequests(params.Channel)
+		}
+		http.Error(w, "Error processing request. Check your inputs.", http.StatusInternalServerError)
 	}
 
-	clearChannelRequests(requests[0].Channel)
+	if len(requests) > 0 {
+		clearChannelRequests(params.Channel)
+	}
 }

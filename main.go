@@ -52,10 +52,21 @@ func listVoices(w http.ResponseWriter, _ *http.Request) {
 }
 
 func serveClient(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		ServerURL string
-	}{
-		ServerURL: serverURL,
+	var data interface{}
+	if sentryURL == "" {
+		data = struct {
+			ServerURL string
+		}{
+			ServerURL: serverURL,
+		}
+	} else {
+		data = struct {
+			ServerURL string
+			SentryURL string
+		}{
+			ServerURL: serverURL,
+			SentryURL: sentryURL,
+		}
 	}
 	tmpl, err := template.ParseFiles("index.html")
 	if err != nil {

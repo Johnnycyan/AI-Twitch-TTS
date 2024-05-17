@@ -8,6 +8,7 @@ import (
 
 var (
 	serverURL string
+	sentryURL string
 )
 
 func setupENV() {
@@ -17,6 +18,7 @@ func setupENV() {
 	}
 	elevenKey = os.Getenv("ELEVENLABS_KEY")
 	serverURL = os.Getenv("SERVER_URL")
+	sentryURL = os.Getenv("SENTRY_URL")
 	ttsKey = os.Getenv("TTS_KEY")
 	if elevenKey == "" || serverURL == "" || ttsKey == "" {
 		logger("Missing required environment variables", logError)

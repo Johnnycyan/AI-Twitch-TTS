@@ -123,6 +123,10 @@ func getEffectSound(effect string) ([]byte, bool) {
 			break
 		}
 	}
+	if effectSelected == "" {
+		logger("No effect sound found for: "+effect, logDebug)
+		return nil, false
+	}
 	effectSound, err := os.Open(fmt.Sprintf("%s/%s", effectFolder, effectSelected))
 	if err != nil {
 		logger("Error opening effect sound: "+err.Error(), logError)
@@ -130,6 +134,10 @@ func getEffectSound(effect string) ([]byte, bool) {
 	}
 
 	effectSoundBytes, err := io.ReadAll(effectSound)
+	if err != nil {
+		logger("Error reading effect sound: "+err.Error(), logError)
+		return nil, false
+	}
 
 	return effectSoundBytes, true
 }
