@@ -28,7 +28,7 @@
 		function errorWithTimestamp(message) {
 			const now = new Date();
 			const timeString = now.toTimeString().split(' ')[0]; // Get the time part and remove milliseconds
-			console.error(`[${timestamp}] ${message}`);
+			console.error(`[${timeString}] ${message}`);
 		}
 
 		function sendPing() {
