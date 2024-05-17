@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 )
 
 var (
@@ -10,17 +9,10 @@ var (
 	logDebug    = "debug"
 	logError    = "error"
 	logFountain = "fountain"
+	logLevel    = "debug"
 )
 
 func logger(message string, level string) {
-	args := os.Args
-	var logLevel string
-	if len(args) > 1 {
-		logLevel = args[1]
-	} else {
-		logLevel = "debug"
-	}
-
 	switch level {
 	case "error":
 		message = "ERROR: " + message

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -23,6 +24,17 @@ func setupENV() {
 	if elevenKey == "" || serverURL == "" || ttsKey == "" {
 		logger("Missing required environment variables", logError)
 		return
+	}
+	args := os.Args
+	if len(args) == 2 {
+		port = args[1]
+	} else if len(args) == 3 {
+		port = args[1]
+		logLevel = args[2]
+	} else if len(args) > 3 {
+		log.Fatal("Too many arguments provided")
+	} else {
+		log.Fatal("Not enough arguments provided. Please provide at least a port number and optionally a log level.")
 	}
 	setupPally()
 	setupVoices()
