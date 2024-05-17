@@ -141,7 +141,7 @@ func getURLParams(r *http.Request) *URLParams {
 
 func addPartsToRequest(parts []Part, requestTime string, params *URLParams) error {
 	logger("Adding parts to request", logDebug)
-	for i, part := range parts {
+	for _, part := range parts {
 		if part.Type == "text" {
 			voice, err := getVoiceID(params.FallbackVoice)
 			if err != nil {
@@ -151,7 +151,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("Invalid fallback voice")
 			}
-			parts[i].Text = convertNumberToWords(part.Text)
+			fixedText := convertNumberToWords(part.Text)
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
@@ -164,7 +164,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 					SimilarityBoost: params.SimilarityBoost,
 					Style:           params.Style,
 				},
-				Text: part.Text,
+				Text: fixedText,
 			})
 		} else if part.Type == "voice" {
 			voice, err := getVoiceID(part.Voice)
@@ -175,7 +175,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("You used an invalid voice tag: " + part.Voice)
 			}
-			parts[i].Text = convertNumberToWords(part.Text)
+			fixedText := convertNumberToWords(part.Text)
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
@@ -188,7 +188,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 					SimilarityBoost: params.SimilarityBoost,
 					Style:           params.Style,
 				},
-				Text: part.Text,
+				Text: fixedText,
 			})
 		} else if part.Type == "effect" {
 			requests = append(requests, Request{
@@ -331,6 +331,9 @@ func getFormattedParts(parts []string) ([]Part, error) {
 					Type:   "effect",
 					Effect: tag[2:], // Remove "e-" prefix
 				})
+			} else {
+				// Unknown tag, this is an error
+				return nil, fmt.Errorf("Unknown tag. Not a voice tag or effect tag: " + tag)
 			}
 		} else {
 			// No tag found, treat as plain text (fallback scenario)

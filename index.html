@@ -13,7 +13,7 @@
 	<script>
 		const urlParams = new URLSearchParams(window.location.search);
 		const channel = urlParams.get('channel');
-		const preGain = 10.0;
+		const preGain = 20.0;
 		var serverURL = "{{.ServerURL}}";
 		let requestTime;
 
@@ -84,7 +84,7 @@
 
 							// Create a DynamicsCompressorNode
 							const compressor = audioContext.createDynamicsCompressor();
-							compressor.threshold.value = -20;
+							compressor.threshold.value = -50;
 							compressor.knee.value = 40;
 							compressor.ratio.value = 12;
 							compressor.attack.value = 0;
