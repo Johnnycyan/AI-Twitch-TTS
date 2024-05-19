@@ -37,6 +37,7 @@ jobs:
         uses: vimtor/action-zip@v1.2
         with:
           files: ${{ github.event.repository.name }}.exe index.html effects.html static/
+          recursive: false
           dest: ${{ github.event.repository.name }}_windows.zip
 
       - name: Build for Linux
@@ -49,6 +50,7 @@ jobs:
         uses: vimtor/action-zip@v1.2
         with:
           files: ${{ github.event.repository.name }} index.html effects.html static/
+          recursive: false
           dest: ${{ github.event.repository.name }}_linux.zip
 
       - name: Generate version number
