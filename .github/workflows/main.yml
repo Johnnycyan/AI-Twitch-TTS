@@ -31,6 +31,9 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           GOOS=windows GOARCH=amd64 go build -o ${{ github.event.repository.name }}.exe .
+          cp -r static ${{ github.event.repository.name }}/static
+          cp index.html ${{ github.event.repository.name }}/index.html
+          cp effects.html ${{ github.event.repository.name }}/effects.html
 
       - name: Zip Windows build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -47,6 +50,9 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           GOOS=linux GOARCH=amd64 go build -o ${{ github.event.repository.name }} .
+          cp -r static ${{ github.event.repository.name }}/static
+          cp index.html ${{ github.event.repository.name }}/index.html
+          cp effects.html ${{ github.event.repository.name }}/effects.html
 
       - name: Zip Linux build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
