@@ -22,11 +22,13 @@
   <summary>Table of Contents</summary><br>
 
 - [ Overview](#-overview)
+- [ Example](#-example)
 - [ Features](#-features)
 - [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
   - [ Installation](#-installation)
   - [ Usage](#-usage)
+  - [ Advanced Usage](#-advanced-usage)
 - [ License](#-license)
 </details>
 <hr>
@@ -36,6 +38,11 @@
 AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interactive streaming experiences. The project orchestrates WebSocket connections for audio streaming, processes chat requests, and interfaces with external APIs for voice synthesis. It offers customizable voice options, real-time chat handling, and automated websocket reconnections, enhancing viewer engagement on Twitch streams. The projects modular design ensures a seamless integration of dependencies, automated testing, and CI/CD workflows for efficient development and deployment processes.
 
 ---
+
+##  Example Usage from [Samifying](https://www.twitch.tv/samifying)<a name="-example"></a>
+
+https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9964-2773146901d8
+
 
 ##  Features<a name="-features"></a>
 
@@ -95,22 +102,45 @@ VOICES | Json string list of name/id pairs for Elevenlabs voices
 
 > ⚠️ Might not work without an SSL connection. Has not been tested.
 > 1. Run AI-Twitch-TTS using the command below:
+>     1. Logging mode is optional. Options: info, debug, fountain
 > ```console
-> $ ./AI-Twitch-TTS
+> $ ./AI-Twitch-TTS <port> <logging-mode>
 > ```
 > or
 > ```console
-> $ AI-Twitch-TTS.exe
+> $ AI-Twitch-TTS.exe <port> <logging-mode>
 > ```
 > 2. Add this to your OBS as a browser source
 > ```
 > http(s)://$SERVER_URL/?channel=<username>
 > ```
 > 3. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
->     1. Using [voicename] at the start of the text field will allow you to choose a specific voice for that message<br>(falls back to specified URL voice param or default voice)
+>     1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
 > ```
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
 > ```
+
+---
+
+###  Advanced Usage<a name="-advanced-usage"></a>
+
+[v-voicename] is a voice tag meaning any text written after it will be spoken with that voice.
+
+[e-effectname] is an effect tag which will play an effect.
+
+If you use a tag in a message you MUST use voice tags for all the text you want to say.
+
+✅`[v-voice] this is text and then an effect [e-effect]`
+
+❌`this text has no voice tag [e-effect]`
+
+✅`[v-voice] this is text and then an effect [e-effect] [v-voice] and then more text`
+
+❌`[v-voice] this is text and then an effect [e-effect] this text has no voice tag`
+
+✅`[e-effect] [v-voice] this is text`
+
+❌`[e-effect] this text has no voice tag`
 
 ---
 
