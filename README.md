@@ -138,9 +138,9 @@ SENTRY_URL | URL for Sentry logging of the client (optional)
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
 > ```
 
----
-
 <a name="-advanced-usage"></a>
+
+---
 
 ##  Advanced Usage
 
