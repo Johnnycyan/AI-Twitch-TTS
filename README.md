@@ -64,7 +64,7 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 | [environment.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/environment.go) | Loads environment variables using godotenv, ensuring essential values are present. Sets up necessary configurations for the AI-Twitch-TTS application to function correctly, maintaining a robust system.                                                                                      |
 | [logging.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/logging.go)         | Enables logging customization based on user-defined levels to ensure relevant messages are displayed according to set verbosity preferences.                                                                                                                                                   |
 | [main.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/main.go)               | Defines HTTP handlers for text-to-speech and websockets, serving HTML template. Orchestrates server setup and logging, listening on specified port.                                                                                                                                            |
-| [pally.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/pally.go)             | Establishes and manages connections to Pally WebSocket, processing tip notifications for a Twitch extension. Handles message parsing and client interactions, ensuring timely and accurate message delivery. Maintains WebSocket communication and connection stability for real-time updates. |
+| [pally.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/pally.go)             | Establishes and manages connections to [Pally](https://pally.gg) WebSocket, processing tip notifications for a Twitch extension. Handles message parsing and client interactions, ensuring timely and accurate message delivery. Maintains WebSocket communication and connection stability for real-time updates. |
 | [tts.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/tts.go)                 | Handles text-to-speech requests by generating audio data and sending it to connected clients based on specified channels and voices. Manages voice configurations, client connections, rate limits, and authorization keys for seamless TTS functionality.                                     |
 | [websockets.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/websockets.go)   | Implements WebSocket handling for client connections, managing periodic pings, and message processing. Dynamically assigns client names, tracks active clients, and logs events. Enhances real-time communication in the AI-Twitch-TTS repository architecture.                                |
 | [index.html](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/index.html)         | Implements real-time audio streaming via WebSocket in the AI-Twitch-TTS client. Handles WebSocket connection, audio processing, pings, and restarts. Auto-reconnects on close.                                                                                                                 |
@@ -84,19 +84,24 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 > 1. Download latest release:
 >     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases/latest)
 >
-> 2. Create a .env file in the same directory
+> 2. Create ./alerts/channel folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
 >
-> 3. Fill out required Environmental Variables explained below and in the .env.example
+> 3. Create ./effects folder with effect sound(s) in it for effect tags
+>
+> 4. Create a .env file in the same directory
+>
+> 5. Fill out required Environmental Variables explained below and in the .env.example
 
 Variable      |     Description
 ------------- | -------------
 ELEVENLABS_KEY  | Elevenlabs API key
 SERVER_URL | URL of where the server will be hosted (no protocol) Ex: example.com
 TTS_KEY | Secret key used to authenticate TTS generation
-PALLY_KEYS | Json string list of name/key pairs for pally (optional)
 VOICES | Json string list of name/id pairs for Elevenlabs voices
+PALLY_KEYS | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
+SENTRY_URL | URL for Sentry logging of the client (optional)
 
-###  Usage<a name="-usage"></a>
+##  Usage<a name="-usage"></a>
 
 <h4>From <code>releases</code></h4>
 
@@ -122,7 +127,7 @@ VOICES | Json string list of name/id pairs for Elevenlabs voices
 
 ---
 
-###  Advanced Usage<a name="-advanced-usage"></a>
+##  Advanced Usage<a name="-advanced-usage"></a>
 
 [v-voicename] is a voice tag meaning any text written after it will be spoken with that voice.
 
@@ -151,5 +156,3 @@ This project is protected under the [MIT](https://choosealicense.com/licenses/mi
 ---
 
 [**Return**](#-overview)
-
----
