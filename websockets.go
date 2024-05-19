@@ -145,7 +145,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					// split the message by spaces and get the last element
 					// this is the timestamp of the audio that the client is confirming
 					timestamp := strings.Split(message, " ")[1]
-					logger("Client "+clientName+" confirmed playing audio for "+timestamp+" on channel "+channel, logInfo)
+					requestName := getAudioDataName(timestamp)
+					logger("Client "+clientName+" confirmed playing audio for "+requestName+" on channel "+channel, logInfo)
 					// remove timestamp from playing map
 					delete(playing, timestamp)
 				} else {

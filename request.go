@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"net/http"
@@ -14,7 +15,9 @@ import (
 )
 
 var (
-	requests []Request
+	requests       []Request
+	audioDataNames = make(map[string]string)
+	audioMutex     = sync.Mutex{}
 )
 
 type URLParams struct {
@@ -44,6 +47,28 @@ type Part struct {
 	Text   string
 	Voice  string
 	Effect string
+}
+
+func generateRandomAudioDataName() string {
+	// Generate two random words
+	color := strings.ToLower(randomColor())
+	space := strings.ToLower(randomSpace())
+	return fmt.Sprintf("%s-%s", color, space)
+}
+
+func getAudioDataName(audioData string) string {
+	audioMutex.Lock()
+	defer audioMutex.Unlock()
+
+	// Check if the name already exists
+	name, exists := audioDataNames[audioData]
+	if !exists {
+		// Generate a new name if not exist
+		name = generateRandomAudioDataName()
+		audioDataNames[audioData] = name
+	}
+
+	return name
 }
 
 func convertNumberToWords(text string) string {
@@ -349,20 +374,21 @@ func getFormattedParts(parts []string) ([]Part, error) {
 func sendAudio(request Request, audioData []byte) {
 	sendTextMessage(request.Channel, "start "+request.Time)
 	time.Sleep(200 * time.Millisecond)
+	requestName := getAudioDataName(request.Time)
 	playing[request.Time] = true
 	for client, clientChannel := range clients {
 		if clientChannel == request.Channel {
 			clientName := getClientName(fmt.Sprintf("%p", client))
 			err := client.WriteMessage(websocket.BinaryMessage, audioData)
 			if err != nil {
-				logger("Error sending audio data to "+clientName+": "+err.Error(), logError)
+				logger("Error sending audio data to "+requestName+": "+err.Error(), logError)
 				client.Close()
 				delete(clients, client)
 				if len(requests) > 0 {
 					clearChannelRequests(request.Channel)
 				}
 			}
-			logger("Audio data "+request.Time+" sent to "+clientName+" on channel "+request.Channel, logInfo)
+			logger("Audio data "+requestName+" sent to "+clientName+" on channel "+request.Channel, logInfo)
 		}
 	}
 }
@@ -437,9 +463,10 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 			for playing[requests[i].Time] {
 				select {
 				case <-replyVerifyTicker.C:
-					logger("No reply received for "+requests[i].Time, logInfo)
+					requestName := getAudioDataName(requests[i].Time)
+					logger("No reply received for "+requestName, logInfo)
 					clearChannelRequests(requests[i].Channel)
-					http.Error(w, "No reply received for "+requests[i].Time, http.StatusRequestTimeout)
+					http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
 					return
 				default:
 					time.Sleep(50 * time.Millisecond)
@@ -456,5 +483,13 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 
 	if len(requests) > 0 {
 		clearChannelRequests(params.Channel)
+		//remove audio data name from map
+		audioMutex.Lock()
+		for _, request := range requests {
+			if request.Channel == params.Channel {
+				delete(audioDataNames, request.Time)
+			}
+		}
+		audioMutex.Unlock()
 	}
 }
