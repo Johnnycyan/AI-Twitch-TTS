@@ -66,13 +66,30 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	channel := strings.ToLower(r.URL.Query().Get("channel"))
+	hash := r.URL.Query().Get("v")
+	currentHash, err := ComputeMD5("index.html")
+	if err != nil {
+		logger("Error computing hash for index.html: "+err.Error(), logError)
+		return
+	}
+
 	clientName := getClientName(fmt.Sprintf("%p", conn))
+	if hash != currentHash {
+		logger(clientName+" on "+channel+" connected with outdated version: "+hash+" (current: "+currentHash+")", logInfo)
+		logger("Sending update message to "+clientName+" on "+channel+": "+currentHash, logInfo)
+		err := conn.WriteMessage(websocket.TextMessage, []byte("update "+currentHash))
+		if err != nil {
+			logger("Error sending update message to client: "+err.Error(), logError)
+		}
+		conn.Close()
+		return
+	}
 	logger("Client "+clientName+" connected to channel "+channel, logInfo)
 	clients[conn] = channel
 
 	// Read messages from the client
 	go func(clientName string, channel string, conn *websocket.Conn) {
-		clientPingTicker := time.NewTicker(60 * time.Second)
+		clientPingTicker := time.NewTicker(120 * time.Second)
 		// check for client ping messages and reset the ticker, otherwise close the connection if no ping is received after 60 seconds
 		go func() {
 			for {

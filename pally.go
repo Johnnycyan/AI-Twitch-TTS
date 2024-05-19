@@ -38,8 +38,7 @@ func setupPally() {
 func connectToPallyWebsocket(channel string, pallyKey string) {
 	for {
 		if err := attemptConnectToPallyWebsocket(channel, pallyKey); err != nil {
-			logger("We need to restart the Pally connection", logInfo)
-			logger("Reconnecting to Pally...", logInfo)
+			continue
 		} else {
 			logger("Pally connection closed normally.", logInfo)
 			return
@@ -187,7 +186,7 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 			logger("Sending ping message to Pally on channel "+channel, logFountain)
 			err = conn.WriteMessage(websocket.TextMessage, []byte(`ping`))
 			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
+				if strings.Contains(err.Error(), "use of closed network connection") || strings.Contains(err.Error(), "close sent") {
 					logger("Stopping ping on old connection for Pally on channel "+channel, logInfo)
 					return
 				} else {
@@ -204,7 +203,7 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			// check if it's just an EOF 1006 error
-			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
 				logger("Pally connection closed normally on channel "+channel, logInfo)
 				return err
 			} else {

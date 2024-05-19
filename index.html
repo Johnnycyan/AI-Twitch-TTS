@@ -15,6 +15,7 @@
 		const channel = urlParams.get('channel');
 		const preGain = 20.0;
 		var serverURL = "{{.ServerURL}}";
+		var Hash = "{{.Hash}}";
 		let requestTime;
 
 		let socket;
@@ -53,7 +54,9 @@
 		}
 
 		function connectWebSocket() {
-			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}`);
+			socket = new WebSocket(`wss://${serverURL}/ws?channel=${channel}&v=${Hash}`);
+
+			logWithTimestamp(`Connecting to WebSocket server on wss://${serverURL}/ws?channel=${channel}&v=${Hash}`);
 
 			socket.onmessage = event => {
 				try {
@@ -63,6 +66,11 @@
 						if (event.type === 'message' && event.data.startsWith('start')) {
 							requestTime = event.data.split(' ')[1];
 							logWithTimestamp('Audio playback requested for:', requestTime);
+							return;
+						} else if (event.data.startsWith('update')) {
+							version = event.data.split(' ')[1];
+							logWithTimestamp('Updating to version:', version);
+							window.location.href = `https://${serverURL}/?channel=${channel}&v=${version}`;
 							return;
 						}
 					} else if (event.data instanceof Blob) {
@@ -110,20 +118,23 @@
 						errorWithTimestamp('Error reading audio data:', error);
 						logWithTimestamp('Restarting...');
 						restart();
-						clearInterval(restart);
-						setInterval(restart, 1800000);
+						// clearInterval(restart);
+						// setInterval(restart, 1800000);
 					};
 				} catch (error) {
 					errorWithTimestamp('Error processing audio data:', error);
+					socket.send('confirm ' + requestTime);
+					requestTime = null;
 					logWithTimestamp('Restarting...');
 					restart();
-					clearInterval(restart);
-					setInterval(restart, 1800000);
+					// clearInterval(restart);
+					// setInterval(restart, 1800000);
 				}
 			};
 
 			socket.onclose = () => {
 				logWithTimestamp('WebSocket connection closed. Reconnecting...');
+				//window.location.reload();
 				setTimeout(connectWebSocket, 500); // Reconnect after 500ms
 			};
 
@@ -134,7 +145,7 @@
 
 		connectWebSocket();
 		setInterval(sendPing, 20000); // Send ping every 20 seconds
-		setInterval(restart, 1800000); // Restart every 30 minutes
+		// setInterval(restart, 1800000); // Restart every 30 minutes
 
 		// Add event listener for beforeunload event
         window.addEventListener('beforeunload', () => {

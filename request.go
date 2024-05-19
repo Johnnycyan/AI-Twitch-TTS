@@ -52,7 +52,7 @@ func convertNumberToWords(text string) string {
 	// I'm using a regex to find the numbers and then convert them to words
 
 	// find all numbers in the string
-	re := regexp.MustCompile(`\d+(\.\d+)?`) // example: 123, 123.48, xdd33444 -> 123, 123.48, 33444
+	re := regexp.MustCompile(`\d+(\.\d+)?`) // example: 123, 123.48, xdd33444 4234xdd -> 123, 123.48, 33444 4234
 	numbers := re.FindAllString(text, -1)
 
 	if numbers == nil {
@@ -74,6 +74,7 @@ func convertNumberToWords(text string) string {
 	}
 
 	text = strings.TrimSpace(text)
+	text = strings.Replace(text, "   ", " ", -1)
 	text = strings.Replace(text, "  ", " ", -1)
 
 	return text
@@ -264,8 +265,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger("Parts: "+fmt.Sprintf("%+v", parts), logDebug)
-
 	err = addPartsToRequest(parts, requestTime, params)
 	if err != nil {
 		logger("Error adding parts to request: "+err.Error(), logError)
@@ -348,10 +347,8 @@ func getFormattedParts(parts []string) ([]Part, error) {
 }
 
 func sendAudio(request Request, audioData []byte) {
-	logger("Sending audio data", logInfo)
 	sendTextMessage(request.Channel, "start "+request.Time)
 	time.Sleep(200 * time.Millisecond)
-	logger("Setting playing map value to true for "+request.Time, logDebug)
 	playing[request.Time] = true
 	for client, clientChannel := range clients {
 		if clientChannel == request.Channel {
@@ -365,7 +362,7 @@ func sendAudio(request Request, audioData []byte) {
 					clearChannelRequests(request.Channel)
 				}
 			}
-			logger("Audio data sent to "+clientName+" on channel "+request.Channel, logInfo)
+			logger("Audio data "+request.Time+" sent to "+clientName+" on channel "+request.Channel, logInfo)
 		}
 	}
 }
@@ -382,7 +379,6 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 	var bad = false
 	for _, request := range requests {
 		if request.Type == "text" || request.Type == "voice" {
-			logger("Processing text request", logInfo)
 			audio, err = generateAudio(request)
 			if err != nil {
 				logger("Error generating audio: "+err.Error(), logError)
@@ -404,7 +400,6 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 			}
 			audioData = append(audioData, AudioData{Audio: audio})
 		} else if request.Type == "effect" {
-			logger("Processing effect request", logInfo)
 			audio, found := getEffectSound(request.Effect)
 			if !found {
 				logger("Effect sound not found", logError)

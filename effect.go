@@ -91,6 +91,7 @@ func effectsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getEffectSound(effect string) ([]byte, bool) {
+	logger("Getting effect sound for: "+effect, logDebug)
 	var effectSounds []string
 	//check if effects folder exists and if so get all .mp3 files in it
 	if _, err := os.Stat(effectFolder); err == nil {
