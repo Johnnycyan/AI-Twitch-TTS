@@ -34,3 +34,5 @@ go.work
 # compile script
 compile.bat
 AI-Twitch-TTS
+
+!static/

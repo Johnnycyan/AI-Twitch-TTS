@@ -32,10 +32,32 @@ jobs:
         run: |
           GOOS=windows GOARCH=amd64 go build -o ${{ github.event.repository.name }}.exe .
 
+      - name: Zip Windows build
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: vimtor/action-zip@v1.2
+        with:
+          files: |
+            ${{ github.event.repository.name }}.exe
+            index.html
+            effects.html
+            static/effects.css
+          dest: ${{ github.event.repository.name }}_windows.zip
+
       - name: Build for Linux
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           GOOS=linux GOARCH=amd64 go build -o ${{ github.event.repository.name }} .
+
+      - name: Zip Linux build
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: vimtor/action-zip@v1.2
+        with:
+          files: |
+            ${{ github.event.repository.name }}
+            index.html
+            effects.html
+            static/effects.css
+          dest: ${{ github.event.repository.name }}_linux.zip
 
       - name: Generate version number
         if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
@@ -50,6 +72,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ${{ github.event.repository.name }}.exe
-            ${{ github.event.repository.name }}
+            ${{ github.event.repository.name }}_windows.zip
+            ${{ github.event.repository.name }}_linux.zip
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -10,6 +10,6 @@ require (
 )
 
 require (
-	github.com/sandisuryadi36/number-to-words v1.0.2 // indirect
+	github.com/sandisuryadi36/number-to-words v1.0.2
 	golang.org/x/net v0.17.0 // indirect
 )

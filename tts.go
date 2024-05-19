@@ -7,16 +7,12 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
-
-	"regexp"
 
 	"github.com/Johnnycyan/elevenlabs/client"
 	"github.com/Johnnycyan/elevenlabs/client/types"
 	"github.com/gorilla/websocket"
-	"github.com/sandisuryadi36/number-to-words/convert"
 )
 
 var (
@@ -26,12 +22,18 @@ var (
 	defaultVoiceID string
 	elevenKey      string
 	ttsKey         string
-	playing        = map[string]bool{}
 )
 
 type Voice struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
+}
+
+type TTSSettings struct {
+	Voice           string
+	Stability       float64
+	SimilarityBoost float64
+	Style           float64
 }
 
 func setupVoices() {
@@ -48,15 +50,15 @@ func setupVoices() {
 	}
 }
 
-func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel string, alert bool, stability float64, similarityBoost float64, style float64) {
-	audioData, err := generateAudio(text, stability, similarityBoost, style)
+func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, alert bool) {
+	audioData, err := generateAudio(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if alert {
-		alertSound, alertExists := getAlertSound(channel)
+		alertSound, alertExists := getAlertSound(request.Channel)
 
 		if alertExists {
 			alertSoundBytes, err := io.ReadAll(alertSound)
@@ -65,14 +67,14 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 			} else {
 				for client, clientChannel := range clients {
 					clientName := getClientName(fmt.Sprintf("%p", client))
-					if clientChannel == channel {
+					if clientChannel == request.Channel {
 						err := client.WriteMessage(websocket.BinaryMessage, alertSoundBytes)
 						if err != nil {
 							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError)
 							client.Close()
 							delete(clients, client)
 						} else {
-							logger("Alert sound sent to "+clientName+" on channel "+channel, logInfo)
+							logger("Alert sound sent to "+clientName+" on channel "+request.Channel, logInfo)
 						}
 					}
 				}
@@ -81,18 +83,9 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, text string, channel
 		}
 	}
 
-	for client, clientChannel := range clients {
-		if clientChannel == channel {
-			clientName := getClientName(fmt.Sprintf("%p", client))
-			err := client.WriteMessage(websocket.BinaryMessage, audioData)
-			if err != nil {
-				logger("Error sending audio data to "+clientName+": "+err.Error(), logError)
-				client.Close()
-				delete(clients, client)
-			}
-			logger("Audio data sent to "+clientName+" on channel "+channel, logInfo)
-		}
-	}
+	sendAudio(request, audioData)
+
+	clearChannelRequests(request.Channel)
 }
 
 func validVoice(voice string) bool {
@@ -182,129 +175,8 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 	return true, text
 }
 
-func convertNumberToWords(text string) string {
-	// find numbers in the string, convert them to words and replace them in the string. I want to find them even if it's for example xdd34624 so not only numbers that are separated by spaces
-	// I'm using a regex to find the numbers and then convert them to words
-
-	// find all numbers in the string
-	re := regexp.MustCompile(`\d+(\.\d+)?`) // example: 123, 123.48, xdd33444 -> 123, 123.48, 33444
-	numbers := re.FindAllString(text, -1)
-
-	if numbers == nil {
-		return text
-	}
-
-	// add a space between any string character and number
-	text = re.ReplaceAllString(text, " $0") // example: 123, 123.48, xdd33444 -> 123, 123.48, xdd 33444
-
-	// convert the numbers to words
-	for _, number := range numbers {
-		// convert the number to words
-		words := convert.NumberToWords(number, "en")
-
-		// replace the number in the string with the words
-		text = strings.Replace(text, number, words, -1)
-	}
-
-	text = strings.TrimSpace(text)
-	text = strings.Replace(text, "  ", " ", -1)
-
-	return text
-}
-
-func handleTTS(w http.ResponseWriter, r *http.Request) {
-	logger("Received TTS request", logInfo)
-
-	channel := strings.ToLower(r.URL.Query().Get("channel"))
-	if channel == "" {
-		http.Error(w, "channel query parameter is required", http.StatusBadRequest)
-		return
-	}
-
-	if playing[channel] {
-		logger("Last audio is still playing on "+channel, logInfo)
-		http.Error(w, "Wait for the last TTS to finish playing", http.StatusTooManyRequests)
-		return
-	}
-	playing[channel] = true
-
-	authKey := r.URL.Query().Get("key")
-	if authKey != ttsKey {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-	text := r.URL.Query().Get("text")
-	if text == "" {
-		http.Error(w, "No text provided.", http.StatusBadRequest)
-		return
-	}
-	fallbackVoice := strings.ToLower(r.URL.Query().Get("voice"))
-	valid, text := configureVoice(fallbackVoice, text)
-	if !valid {
-		http.Error(w, "No valid voice found in URL or message", http.StatusBadRequest)
-		return
-	}
-
-	text = convertNumberToWords(text)
-
-	stabilityString := r.URL.Query().Get("stability")
-	similarityBoostString := r.URL.Query().Get("similarityBoost")
-	styleString := r.URL.Query().Get("style")
-
-	if stabilityString == "" {
-		stabilityString = "0.40"
-	}
-	if similarityBoostString == "" {
-		similarityBoostString = "1.00"
-	}
-	if styleString == "" {
-		styleString = "0.00"
-	}
-
-	stability, err := strconv.ParseFloat(stabilityString, 64)
-	if err != nil {
-		logger("Invalid stability: "+stabilityString+" so defaulting to 0.40", logInfo)
-		stability = 0.40
-	}
-	similarityBoost, err := strconv.ParseFloat(similarityBoostString, 64)
-	if err != nil {
-		logger("Invalid similarityBoost: "+similarityBoostString+" so defaulting to 1.00", logInfo)
-		similarityBoost = 1.00
-	}
-	style, err := strconv.ParseFloat(styleString, 64)
-	if err != nil {
-		logger("Invalid style: "+styleString+" so defaulting to 0.00", logInfo)
-		style = 0.00
-	}
-
-	if len(clients) == 0 {
-		logger("No connected clients", logInfo)
-		http.Error(w, "No connected clients", http.StatusNotFound)
-		return
-	}
-
-	// Check if there is a connected client for the channel
-	found := false
-	for client, clientChannel := range clients {
-		clientName := getClientName(fmt.Sprintf("%p", client))
-		if clientChannel == channel {
-			logger("Found client "+clientName+" for channel "+channel, logDebug)
-			found = true
-			break
-		}
-	}
-	if found == false {
-		logger("No connected client for channel "+channel, logInfo)
-		http.Error(w, "No connected client for channel", http.StatusNotFound)
-		return
-	}
-
-	go handleTTSAudio(w, r, text, channel, false, stability, similarityBoost, style)
-	return
-}
-
-func generateAudio(text string, stability float64, similarityBoost float64, style float64) ([]byte, error) {
-	logger("Generating audio for text: "+text, logDebug)
+func generateAudio(request Request) ([]byte, error) {
+	logger("Generating TTS audio for text: "+request.Text, logDebug)
 
 	ctx := context.Background()
 	client := client.New(elevenKey)
@@ -312,6 +184,7 @@ func generateAudio(text string, stability float64, similarityBoost float64, styl
 
 	clientData, err := client.GetUserInfo(ctx)
 	if err != nil {
+		logger("Error getting user info: "+err.Error(), logError)
 		return nil, err
 	}
 
@@ -326,15 +199,16 @@ func generateAudio(text string, stability float64, similarityBoost float64, styl
 	}
 
 	go func() {
-		err := client.TTSStream(ctx, pipeWriter, text, "eleven_multilingual_v2", voice, types.SynthesisOptions{Stability: stability, SimilarityBoost: similarityBoost, Format: format, Style: style})
+		err := client.TTSStream(ctx, pipeWriter, request.Text, "eleven_multilingual_v2", request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
 		if err != nil {
-			logger(err.Error(), logError)
+			logger("Error generating TTS audio: "+err.Error(), logError)
 		}
 		pipeWriter.Close()
 	}()
 
 	audioData, err := io.ReadAll(pipeReader)
 	if err != nil {
+		logger("Error reading TTS audio data: "+err.Error(), logError)
 		return nil, err
 	}
 

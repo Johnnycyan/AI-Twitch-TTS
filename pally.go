@@ -38,8 +38,7 @@ func setupPally() {
 func connectToPallyWebsocket(channel string, pallyKey string) {
 	for {
 		if err := attemptConnectToPallyWebsocket(channel, pallyKey); err != nil {
-			logger("We need to restart the Pally connection", logInfo)
-			logger("Reconnecting to Pally...", logInfo)
+			continue
 		} else {
 			logger("Pally connection closed normally.", logInfo)
 			return
@@ -135,8 +134,23 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
+	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo)
-	go handleTTSAudio(nil, nil, ttsMessage, channel, true, 0.40, 1.00, 0.00)
+	request := Request{
+		Channel: channel,
+		Text:    ttsMessage,
+		Time:    requestTime,
+		Voice: TTSSettings{
+			Voice:           defaultVoice,
+			Stability:       0.40,
+			SimilarityBoost: 1.00,
+			Style:           0.00,
+		},
+	}
+
+	// Add the request to the queue
+	requests = append(requests, request)
+	go handleTTSAudio(nil, nil, request, true)
 }
 
 func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
@@ -172,7 +186,7 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 			logger("Sending ping message to Pally on channel "+channel, logFountain)
 			err = conn.WriteMessage(websocket.TextMessage, []byte(`ping`))
 			if err != nil {
-				if strings.Contains(err.Error(), "use of closed network connection") {
+				if strings.Contains(err.Error(), "use of closed network connection") || strings.Contains(err.Error(), "close sent") {
 					logger("Stopping ping on old connection for Pally on channel "+channel, logInfo)
 					return
 				} else {
@@ -189,7 +203,7 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			// check if it's just an EOF 1006 error
-			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
 				logger("Pally connection closed normally on channel "+channel, logInfo)
 				return err
 			} else {
