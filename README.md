@@ -41,12 +41,15 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 
 ---
 
-##  Example Usage from [Samifying](https://www.twitch.tv/samifying)<a name="-example"></a>
+<a name="-example"></a>
+
+##  Example Usage from [Samifying](https://www.twitch.tv/samifying)
 
 https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9964-2773146901d8
 
+<a name="-features"></a>
 
-##  Features<a name="-features"></a>
+##  Features
 
 |    |   Feature         | Description |
 |----|-------------------|---------------------------------------------------------------|
@@ -58,7 +61,9 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 
 ---
 
-##  Modules<a name="-modules"></a>
+<a name="-modules"></a>
+
+##  Modules
 
 | File                                                                                     | Summary                                                                                                                                                                                                                                                                                        |
 | ---                                                                                      | ---                                                                                                                                                                                                                                                                                            |
@@ -73,13 +78,17 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 
 ---
 
-##  Getting Started<a name="-getting-started"></a>
+<a name="-getting-started"></a>
+
+##  Getting Started
 
 **System Requirements:**
 
 * **Internet**
 
-###  Installation<a name="-installation"></a>
+<a name="-installation"></a>
+
+###  Installation
 
 <h4>From <code>releases</code></h4>
 
@@ -103,7 +112,9 @@ VOICES | Json string list of name/id pairs for Elevenlabs voices
 PALLY_KEYS | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
 SENTRY_URL | URL for Sentry logging of the client (optional)
 
-##  Usage<a name="-usage"></a>
+<a name="-usage"></a>
+
+##  Usage
 
 <h4>From <code>releases</code></h4>
 
@@ -129,7 +140,9 @@ SENTRY_URL | URL for Sentry logging of the client (optional)
 
 ---
 
-##  Advanced Usage<a name="-advanced-usage"></a>
+<a name="-advanced-usage"></a>
+
+##  Advanced Usage
 
 [v-voicename] is a voice tag meaning any text written after it will be spoken with that voice.
 
@@ -151,7 +164,9 @@ If you use a tag in a message you MUST use voice tags for all the text you want 
 
 ---
 
-##  License<a name="-license"></a>
+<a name="-license"></a>
+
+##  License
 
 This project is protected under the [MIT](https://choosealicense.com/licenses/mit/) License. For more details, refer to the [LICENSE](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/LICENSE) file.
 
