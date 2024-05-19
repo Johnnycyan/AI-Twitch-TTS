@@ -31,38 +31,24 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           GOOS=windows GOARCH=amd64 go build -o ${{ github.event.repository.name }}.exe .
-          cp -r static ${{ github.event.repository.name }}/static
-          cp index.html ${{ github.event.repository.name }}/index.html
-          cp effects.html ${{ github.event.repository.name }}/effects.html
 
       - name: Zip Windows build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: vimtor/action-zip@v1.2
         with:
-          files: |
-            ${{ github.event.repository.name }}.exe
-            index.html
-            effects.html
-            static/effects.css
+          files: ${{ github.event.repository.name }}.exe index.html effects.html static/
           dest: ${{ github.event.repository.name }}_windows.zip
 
       - name: Build for Linux
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
           GOOS=linux GOARCH=amd64 go build -o ${{ github.event.repository.name }} .
-          cp -r static ${{ github.event.repository.name }}/static
-          cp index.html ${{ github.event.repository.name }}/index.html
-          cp effects.html ${{ github.event.repository.name }}/effects.html
 
       - name: Zip Linux build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: vimtor/action-zip@v1.2
         with:
-          files: |
-            ${{ github.event.repository.name }}
-            index.html
-            effects.html
-            static/effects.css
+          files: ${{ github.event.repository.name }} index.html effects.html static/
           dest: ${{ github.event.repository.name }}_linux.zip
 
       - name: Generate version number
