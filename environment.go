@@ -38,6 +38,7 @@ func setupENV() {
 		logger("MongoDB environment variables provided. MongoDB will be enabled.", logInfo)
 		mongoEnabled = true
 	}
+	createClient()
 	args := os.Args
 	if len(args) == 2 {
 		port = args[1]

@@ -21,6 +21,7 @@ var (
 	defaultVoice   string
 	defaultVoiceID string
 	elevenKey      string
+	ttsClient      client.Client
 	ttsKey         string
 )
 
@@ -34,6 +35,10 @@ type TTSSettings struct {
 	Stability       float64
 	SimilarityBoost float64
 	Style           float64
+}
+
+func createClient() {
+	ttsClient = client.New(elevenKey)
 }
 
 func setupVoices() {
@@ -179,10 +184,9 @@ func generateAudio(request Request) ([]byte, error) {
 	logger("Generating TTS audio for text: "+request.Text, logDebug)
 
 	ctx := context.Background()
-	client := client.New(elevenKey)
 	pipeReader, pipeWriter := io.Pipe()
 
-	clientData, err := client.GetUserInfo(ctx)
+	clientData, err := ttsClient.GetUserInfo(ctx)
 	if err != nil {
 		logger("Error getting user info: "+err.Error(), logError)
 		return nil, err
@@ -199,7 +203,7 @@ func generateAudio(request Request) ([]byte, error) {
 	}
 
 	go func() {
-		err := client.TTSStream(ctx, pipeWriter, request.Text, "eleven_multilingual_v2", request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
+		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, "eleven_multilingual_v2", request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
 		if err != nil {
 			logger("Error generating TTS audio: "+err.Error(), logError)
 		}
@@ -222,9 +226,8 @@ type ClientData struct {
 
 func getCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
-	client := client.New(elevenKey)
 
-	clientInfo, err := client.GetUserInfo(ctx)
+	clientInfo, err := ttsClient.GetUserInfo(ctx)
 	if err != nil {
 		logger("Error getting user info: "+err.Error(), logError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
