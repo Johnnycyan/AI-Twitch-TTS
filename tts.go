@@ -214,3 +214,41 @@ func generateAudio(request Request) ([]byte, error) {
 
 	return audioData, nil
 }
+
+type ClientData struct {
+	CharactersLeft  int `json:"characters_left"`
+	CharactersReset int `json:"characters_reset"`
+}
+
+func getCharactersHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	client := client.New(elevenKey)
+
+	clientInfo, err := client.GetUserInfo(ctx)
+	if err != nil {
+		logger("Error getting user info: "+err.Error(), logError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	characters := clientInfo.Subscription.CharacterCount
+	characterLimit := clientInfo.Subscription.CharacterLimit
+
+	charactersRemaining := characterLimit - characters
+
+	charactersReset := clientInfo.Subscription.NextCharacterCountResetUnix
+
+	clientData := ClientData{
+		CharactersLeft:  int(charactersRemaining),
+		CharactersReset: int(charactersReset),
+	}
+
+	clientDataJSON, err := json.Marshal(clientData)
+	if err != nil {
+		logger("Error marshalling client data: "+err.Error(), logError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(clientDataJSON)
+}

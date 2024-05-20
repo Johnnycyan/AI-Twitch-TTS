@@ -31,8 +31,9 @@ func setupHandlers() {
 	router.HandleFunc("/ws", handleWebSocket)
 	router.HandleFunc("/fx", listEffects)
 	router.HandleFunc("/update", updateHandler)
-	router.HandleFunc("/data/{channel}", viewDataHandler)
+	router.HandleFunc("/eleven/characters", getCharactersHandler)
 	if mongoEnabled {
+		router.HandleFunc("/data/{channel}", viewDataHandler)
 		router.HandleFunc("/chart", serveChart)
 	}
 	router.HandleFunc("/", serveClient)
