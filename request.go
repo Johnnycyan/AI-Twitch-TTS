@@ -425,6 +425,19 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				return
 			}
 			audioData = append(audioData, AudioData{Audio: audio})
+			if mongoEnabled {
+				data, err := createData(request)
+				if err != nil {
+					logger("Error creating data: "+err.Error(), logError)
+					bad = true
+					if len(requests) > 0 {
+						clearChannelRequests(params.Channel)
+					}
+					http.Error(w, "Error creating data. Check your inputs.", http.StatusInternalServerError)
+					return
+				}
+				addData(data)
+			}
 		} else if request.Type == "effect" {
 			audio, found := getEffectSound(request.Effect)
 			if !found {

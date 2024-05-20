@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	serverURL string
-	sentryURL string
+	serverURL    string
+	sentryURL    string
+	mongoEnabled bool
 )
 
 func setupENV() {
@@ -21,9 +22,21 @@ func setupENV() {
 	serverURL = os.Getenv("SERVER_URL")
 	sentryURL = os.Getenv("SENTRY_URL")
 	ttsKey = os.Getenv("TTS_KEY")
+	mongoUser = os.Getenv("MONGO_USER")
+	mongoPass = os.Getenv("MONGO_PASS")
+	mongoHost = os.Getenv("MONGO_HOST")
+	mongoPort = os.Getenv("MONGO_PORT")
+	dbName = os.Getenv("MONGO_DB")
 	if elevenKey == "" || serverURL == "" || ttsKey == "" {
 		logger("Missing required environment variables", logError)
 		return
+	}
+	if mongoHost == "" || mongoPort == "" || dbName == "" {
+		logger("MongoDB environment variables not provided. MongoDB will be disabled.", logInfo)
+		mongoEnabled = false
+	} else {
+		logger("MongoDB environment variables provided. MongoDB will be enabled.", logInfo)
+		mongoEnabled = true
 	}
 	args := os.Args
 	if len(args) == 2 {
@@ -38,4 +51,5 @@ func setupENV() {
 	}
 	setupPally()
 	setupVoices()
+	setupDB()
 }

@@ -9,6 +9,8 @@ import (
 
 	//"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 	//"os"
 )
 
@@ -17,17 +19,25 @@ var (
 )
 
 func setupHandlers() {
-	// Serve the effects directory under the /effects route
-	http.Handle("/effects/", http.StripPrefix("/effects", http.FileServer(http.Dir(effectFolder))))
-	http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
+	router := mux.NewRouter()
 
-	http.HandleFunc("/voices", listVoices)
-	http.HandleFunc("/effects", effectsHandler)
-	http.HandleFunc("/tts", handleRequest)
-	http.HandleFunc("/ws", handleWebSocket)
-	http.HandleFunc("/fx", listEffects)
-	http.HandleFunc("/", serveClient)
-	http.HandleFunc("/update", updateHandler)
+	// Serve the effects directory under the /effects route
+	router.PathPrefix("/effects/").Handler(http.StripPrefix("/effects", http.FileServer(http.Dir(effectFolder))))
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
+
+	router.HandleFunc("/voices", listVoices)
+	router.HandleFunc("/effects", effectsHandler)
+	router.HandleFunc("/tts", handleRequest)
+	router.HandleFunc("/ws", handleWebSocket)
+	router.HandleFunc("/fx", listEffects)
+	router.HandleFunc("/update", updateHandler)
+	router.HandleFunc("/data/{channel}", viewDataHandler)
+	if mongoEnabled {
+		router.HandleFunc("/chart", serveChart)
+	}
+	router.HandleFunc("/", serveClient)
+
+	http.Handle("/", router)
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {

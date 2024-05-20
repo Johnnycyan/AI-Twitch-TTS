@@ -104,14 +104,20 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 >
 > 5. Fill out required Environmental Variables explained below and in the .env.example
 
-Variable      |     Description
-------------- | -------------
-ELEVENLABS_KEY  | Elevenlabs API key
-SERVER_URL | URL of where the server will be hosted (no protocol) Ex: example.com
-TTS_KEY | Secret key used to authenticate TTS generation
-VOICES | Json string list of name/id pairs for Elevenlabs voices
-PALLY_KEYS | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
-SENTRY_URL | URL for Sentry logging of the client (optional)
+Variable         |  Description
+-------------    | -------------
+ELEVENLABS_KEY   | Elevenlabs API key
+SERVER_URL       | URL of where the server will be hosted (no protocol) Ex: example.com
+TTS_KEY          | Secret key used to authenticate TTS generation
+VOICES           | Json string list of name/id pairs for Elevenlabs voices
+PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
+SENTRY_URL       | URL for Sentry logging of the client (optional)
+MONGO_HOST       | URL for MongoDB Host (optional)
+MONGO_PORT       | Port for MongoDB (optional)
+MONGO_USER       | Username for MongoDB (optional)
+MONGO_PASS       | Password for MongoDB (optional)
+MONGO_DB         | Database name for MongoDB (optional)
+ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)
 
 <a name="-usage"></a>
 
