@@ -72,7 +72,7 @@
             <p class="text-white">Total Characters: <span id="total-characters"></span></p>
             <p class="text-white">Total Cost: <span id="total-cost"></span></p>
             <p class="text-white">Characters Left: <span id="characters-left"></span></p>
-            <p class="text-white">Characters Reset in <span id="characters-reset"></span></p>
+            <p class="text-white">Characters Refresh in <span id="characters-reset"></span></p>
         </div>
         <div class="chart-container">
             <canvas id="dataChart"></canvas>
@@ -101,8 +101,13 @@
             const minutesUntilReset = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
             const secondsUntilReset = Math.floor((timeUntilReset % (1000 * 60)) / 1000);
 
+            const resetTime = daysUntilReset > 0 ? `${daysUntilReset} day${daysUntilReset > 1 ? 's' : ''}` : 
+                                  hoursUntilReset > 0 ? `${hoursUntilReset} hour${hoursUntilReset > 1 ? 's' : ''}` :
+                                  minutesUntilReset > 0 ? `${minutesUntilReset} minute${minutesUntilReset > 1 ? 's' : ''}` :
+                                  `${secondsUntilReset} second${secondsUntilReset > 1 ? 's' : ''}`;
+
             document.getElementById('characters-left').textContent = charactersLeft;
-            document.getElementById('characters-reset').textContent = daysUntilReset + 'd ' + hoursUntilReset + 'h ' + minutesUntilReset + 'm ' + secondsUntilReset + 's';
+            document.getElementById('characters-reset').textContent = resetTime;
         }
 
         async function fetchData() {
@@ -167,21 +172,7 @@
                 const totalCharacters = sortedNumCharacters.reduce((acc, curr) => acc + curr, 0);
                 const totalCost = sortedEstimatedCost.reduce((acc, curr) => acc + curr, 0);
 
-                var response = await fetch(`/eleven/characters`);
-                if (!response.ok) throw new Error('Failed to fetch TTS characters');
-
-                const charactersData = await response.json();
-                const charactersLeft = charactersData.characters_left;
-                const charactersResetUnix = charactersData.characters_reset;
-                const currentTime = Date.now();
-                const timeUntilReset = (charactersResetUnix * 1000) - currentTime;
-                const daysUntilReset = Math.floor(timeUntilReset / (1000 * 60 * 60 * 24));
-                const hoursUntilReset = Math.floor((timeUntilReset % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutesUntilReset = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
-                const secondsUntilReset = Math.floor((timeUntilReset % (1000 * 60)) / 1000);
-
-                document.getElementById('characters-left').textContent = charactersLeft;
-                document.getElementById('characters-reset').textContent = daysUntilReset + 'd ' + hoursUntilReset + 'h ' + minutesUntilReset + 'm ' + secondsUntilReset + 's';
+                fetchEleven()
 
                 document.getElementById('total-characters').textContent = totalCharacters;
                 document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(2);
