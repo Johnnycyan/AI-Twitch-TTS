@@ -172,7 +172,7 @@
                 const totalCharacters = sortedNumCharacters.reduce((acc, curr) => acc + curr, 0);
                 const totalCost = sortedEstimatedCost.reduce((acc, curr) => acc + curr, 0);
 
-                fetchEleven()
+                await fetchEleven()
 
                 document.getElementById('total-characters').textContent = totalCharacters;
                 document.getElementById('total-cost').textContent = '$' + totalCost.toFixed(2);

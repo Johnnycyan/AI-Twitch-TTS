@@ -118,6 +118,7 @@ MONGO_USER       | Username for MongoDB (optional)
 MONGO_PASS       | Password for MongoDB (optional)
 MONGO_DB         | Database name for MongoDB (optional)
 ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)
+FFMPEG_ENABLED   | Bool for if you have ffmpeg installed for voice modifiers (optional)
 
 <a name="-usage"></a>
 
