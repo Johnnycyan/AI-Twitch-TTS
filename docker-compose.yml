@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   ai-twitch-tts:
-    image: johnnycyan/ai-twitch-tts:latest
+    image: johnnycyan/ai-twitch-tts:main
     container_name: tts
     ports:
       - 8034:8080
