@@ -37,3 +37,4 @@ docker.bat
 AI-Twitch-TTS
 
 !static/
+!Dockerfile
