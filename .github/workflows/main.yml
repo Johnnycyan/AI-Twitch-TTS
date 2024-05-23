@@ -59,7 +59,7 @@ jobs:
       - name: Build for Windows
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
-          GOOS=windows GOARCH=amd64 go build -o ${{ github.event.repository.name }}.exe .
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ${{ github.event.repository.name }}.exe .
 
       - name: Zip Windows build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -72,7 +72,7 @@ jobs:
       - name: Build for Linux
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: |
-          GOOS=linux GOARCH=amd64 go build -o ${{ github.event.repository.name }} .
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${{ github.event.repository.name }} .
 
       - name: Zip Linux build
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'

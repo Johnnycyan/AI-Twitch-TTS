@@ -1,7 +1,8 @@
-FROM golang:alpine
+# Build stage
+FROM golang:alpine AS build
 
-# Install ffmpeg and other dependencies
-RUN apk add --no-cache ffmpeg
+# Install UPX and other dependencies
+RUN apk add --no-cache upx
 
 WORKDIR /app
 
@@ -13,7 +14,26 @@ COPY *.html ./
 COPY static/ ./static/
 COPY reverb.wav ./
 
-RUN go build -o main .
+RUN go build -ldflags="-s -w" -o main .
+
+# Compress the binary with UPX
+RUN upx --brute main
+
+# Final stage
+FROM alpine:3.20
+
+# Install ffmpeg
+RUN apk add --no-cache ffmpeg
+
+WORKDIR /app
+
+# Copy the compressed binary from the build stage
+COPY --from=build /app/main .
+
+# Copy the necessary files
+COPY *.html ./
+COPY static/ ./static/
+COPY reverb.wav ./
 
 EXPOSE 8080
 
