@@ -96,13 +96,64 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 > 1. Download latest release:
 >     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases/latest)
 >
-> 2. Create ./alerts/channel folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
+> 2. Create `./alerts/<channel>` folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
 >
-> 3. Create ./effects folder with effect sound(s) in it for effect tags
+> 3. Create `./effects` folder with effect sound(s) in it for effect tags
 >
-> 4. Create a .env file in the same directory
+> 4. Create a `.env` file in the same directory
 >
 > 5. Fill out required Environmental Variables explained below and in the .env.example
+
+---
+
+<h4>From <code>docker</code></h4>
+
+> 1. Create `./effects` folder with effect sound(s) in it for effect tags
+>
+> 2. Create `./alerts/<channel>` folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
+>
+> 3. Either create a `.env` file with the required Environmental Variables explained below and in the .env.example or just change them in the compose file.
+
+`docker-compose.yml`
+```
+version: "3.8"
+services:
+  ai-twitch-tts:
+    image: johnnycyan/ai-twitch-tts:main
+    container_name: tts
+    ports:
+      - 6969:8080
+    environment:
+      - ELEVENLABS_KEY=${ELEVENLABS_KEY}
+      - ELEVENLABS_PRICE=${ELEVENLABS_PRICE}
+      - SERVER_URL=${SERVER_URL}
+      - SENTRY_URL=${SENTRY_URL}
+      - TTS_KEY=${TTS_KEY}
+      - PALLY_KEYS=${PALLY_KEYS}
+      - VOICES=${VOICES}
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_USER=${MONGO_USER}
+      - MONGO_PASS=${MONGO_PASS}
+      - MONGO_DB=${MONGO_DB}
+      - FFMPEG_ENABLED=true
+    volumes:
+      - ./effects:/app/effects
+      - ./alerts:/app/alerts
+    depends_on:
+      - mongodb
+  mongodb:
+    image: mongo
+    container_name: tts-mongo
+    restart: always
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS}
+    volumes:
+      - mongodb_data:/data/db
+volumes:
+  mongodb_data:
+```
 
 Variable         |  Description
 -------------    | -------------
@@ -141,6 +192,21 @@ FFMPEG_ENABLED   | Bool for if you have ffmpeg installed for voice modifiers (op
 > http(s)://$SERVER_URL/?channel=<username>
 > ```
 > 3. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
+>     1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
+> ```
+> http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
+> ```
+
+---
+
+<h4>From <code>docker</code></h4>
+
+> ⚠️ Might not work without an SSL connection. Has not been tested.
+> 1. Add this to your OBS as a browser source
+> ```
+> http(s)://$SERVER_URL/?channel=<username>
+> ```
+> 2. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
 >     1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
 > ```
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
