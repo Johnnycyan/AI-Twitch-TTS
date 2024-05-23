@@ -43,7 +43,7 @@ func setupHandlers() {
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
 	channel := r.URL.Query().Get("channel")
-	hash, err := ComputeMD5("index.html")
+	hash, err := ComputeMD5("static/index.html")
 	if err != nil {
 		logger("Error computing hash for index.html: "+err.Error(), logError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -53,12 +53,6 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// args := os.Args
-	// if len(args) > 1 {
-	// 	port = args[1]
-	// } else {
-	// 	log.Fatal("Port not provided")
-	// }
 	setupENV()
 	setupHandlers()
 
@@ -94,7 +88,12 @@ func listVoices(w http.ResponseWriter, _ *http.Request) {
 }
 
 func serveClient(w http.ResponseWriter, r *http.Request) {
-	htmlHash, err := ComputeMD5("index.html")
+	htmlHash, err := ComputeMD5("static/index.html")
+	if err != nil {
+		logger("Error computing hash for index.html: "+err.Error(), logError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	var data interface{}
 	if sentryURL == "" {
 		data = struct {
@@ -115,7 +114,7 @@ func serveClient(w http.ResponseWriter, r *http.Request) {
 			Hash:      htmlHash,
 		}
 	}
-	tmpl, err := template.ParseFiles("index.html")
+	tmpl, err := template.ParseFiles("static/index.html")
 	if err != nil {
 		logger("Error parsing template: "+err.Error(), logError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

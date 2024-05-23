@@ -65,7 +65,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: vimtor/action-zip@v1.2
         with:
-          files: ${{ github.event.repository.name }}.exe index.html effects.html chart.html static/
+          files: ${{ github.event.repository.name }}.exe static/
           recursive: false
           dest: ${{ github.event.repository.name }}_windows.zip
 
@@ -78,7 +78,7 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         uses: vimtor/action-zip@v1.2
         with:
-          files: ${{ github.event.repository.name }} index.html effects.html chart.html static/
+          files: ${{ github.event.repository.name }} static/
           recursive: false
           dest: ${{ github.event.repository.name }}_linux.zip
 

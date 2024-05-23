@@ -67,7 +67,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	channel := strings.ToLower(r.URL.Query().Get("channel"))
 	hash := r.URL.Query().Get("v")
-	currentHash, err := ComputeMD5("index.html")
+	currentHash, err := ComputeMD5("static/index.html")
 	if err != nil {
 		logger("Error computing hash for index.html: "+err.Error(), logError)
 		return

@@ -10,7 +10,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
-COPY *.html ./
 COPY static/ ./static/
 COPY reverb.wav ./
 
@@ -31,7 +30,6 @@ WORKDIR /app
 COPY --from=build /app/main .
 
 # Copy the necessary files
-COPY *.html ./
 COPY static/ ./static/
 COPY reverb.wav ./
 

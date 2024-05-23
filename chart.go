@@ -65,7 +65,7 @@ func serveChart(w http.ResponseWriter, r *http.Request) {
 	}{
 		ServerURL: serverURL,
 	}
-	tmpl, err := template.ParseFiles("chart.html")
+	tmpl, err := template.ParseFiles("static/chart.html")
 	if err != nil {
 		logger("Error parsing template: "+err.Error(), logError)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

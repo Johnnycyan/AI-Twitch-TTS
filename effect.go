@@ -46,7 +46,7 @@ func listEffects(w http.ResponseWriter, _ *http.Request) {
 
 func effectsHandler(w http.ResponseWriter, r *http.Request) {
 	// Ensure the URL path is exactly "/effects"
-	if r.URL.Path != "/effects" {
+	if r.URL.Path != "/effects" && r.URL.Path != "/effects/" {
 		http.NotFound(w, r)
 		return
 	}
@@ -81,7 +81,7 @@ func effectsHandler(w http.ResponseWriter, r *http.Request) {
 	slices.Sort(mp3Files)
 
 	data := FileListData{Files: mp3Files}
-	tmpl, err := template.ParseFiles("effects.html")
+	tmpl, err := template.ParseFiles("static/effects.html")
 	if err != nil {
 		http.Error(w, "Unable to parse template", http.StatusInternalServerError)
 		return
