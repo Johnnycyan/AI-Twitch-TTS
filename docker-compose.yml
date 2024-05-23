@@ -4,7 +4,7 @@ services:
     image: johnnycyan/ai-twitch-tts:main
     container_name: tts
     ports:
-      - 8034:8080
+      - 6969:8080
     environment:
       - ELEVENLABS_KEY=${ELEVENLABS_KEY}
       - ELEVENLABS_PRICE=${ELEVENLABS_PRICE}
@@ -26,7 +26,7 @@ services:
       - mongodb
   mongodb:
     image: mongo
-    container_name: mongo
+    container_name: tts-mongo
     restart: always
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
