@@ -25,7 +25,7 @@ func setupHandlers() {
 	router.PathPrefix("/effects/").Handler(http.StripPrefix("/effects", http.FileServer(http.Dir(effectFolder))))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
 
-	router.HandleFunc("/voices", listVoices)
+	router.HandleFunc("/voices", handleVoices)
 	router.HandleFunc("/effects", effectsHandler)
 	router.HandleFunc("/tts", handleRequest)
 	router.HandleFunc("/ws", handleWebSocket)
@@ -72,19 +72,6 @@ func ComputeMD5(filePath string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
-}
-
-func listVoices(w http.ResponseWriter, _ *http.Request) {
-	var responseString string
-	for i, voice := range voices {
-		if i == len(voices)-1 {
-			responseString += voice.Name
-		} else {
-			responseString += voice.Name + ", "
-		}
-	}
-
-	w.Write([]byte(responseString))
 }
 
 func serveClient(w http.ResponseWriter, r *http.Request) {

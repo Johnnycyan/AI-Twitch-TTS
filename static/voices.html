@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/effects.css">
+    <link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" type="image/svg+xml">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@900&display=swap">
+    <title>Voices</title>
+</head>
+<body>
+    <h1>Voices</h1>
+    <ul>
+        {{range .}}
+        <li>{{.Name}}<br>
+            <audio controls>
+                <source src="{{.PreviewURL}}" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </li>
+        {{end}}
+    </ul>
+</body>
+</html>
