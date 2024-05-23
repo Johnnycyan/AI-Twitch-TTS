@@ -18,7 +18,7 @@ services:
       - MONGO_USER=${MONGO_USER}
       - MONGO_PASS=${MONGO_PASS}
       - MONGO_DB=${MONGO_DB}
-      - FFMPEG_ENABLED=${FFMPEG_ENABLED}
+      - FFMPEG_ENABLED=true
     volumes:
       - ./effects:/app/effects
       - ./alerts:/app/alerts
