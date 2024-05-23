@@ -11,7 +11,6 @@ RUN go mod download
 
 COPY *.go ./
 COPY static/ ./static/
-COPY reverb.wav ./
 
 RUN go build -ldflags="-s -w" -o main .
 
@@ -31,7 +30,6 @@ COPY --from=build /app/main .
 
 # Copy the necessary files
 COPY static/ ./static/
-COPY reverb.wav ./
 
 EXPOSE 8080
 
