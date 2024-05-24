@@ -222,6 +222,8 @@ FFMPEG_ENABLED   | Bool for if you have ffmpeg installed for voice modifiers (op
 
 [e-effectname] is an effect tag which will play an effect.
 
+(reverb) adds reverb to a TTS message.
+
 If you use a tag in a message you MUST use voice tags for all the text you want to say.
 
 ✅`[v-voice] this is text and then an effect [e-effect]`
@@ -235,6 +237,12 @@ If you use a tag in a message you MUST use voice tags for all the text you want 
 ✅`[e-effect] [v-voice] this is text`
 
 ❌`[e-effect] this text has no voice tag`
+
+Example of reverb:
+
+`(reverb) this is reverbed text`
+
+`[v-voice] (reverb) this is reverbed text with a specific voice.`
 
 ---
 
