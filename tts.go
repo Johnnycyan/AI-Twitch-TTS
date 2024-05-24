@@ -181,6 +181,14 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 }
 
 func generateAudio(request Request) ([]byte, error) {
+	var verb bool
+	if strings.HasPrefix(request.Text, "(reverb) ") {
+		verb = true
+		request.Text = strings.TrimPrefix(request.Text, "(reverb) ")
+	} else {
+		verb = false
+	}
+
 	logger("Generating TTS audio for text: "+request.Text, logDebug)
 
 	ctx := context.Background()
@@ -214,6 +222,15 @@ func generateAudio(request Request) ([]byte, error) {
 	if err != nil {
 		logger("Error reading TTS audio data: "+err.Error(), logError)
 		return nil, err
+	}
+
+	if verb {
+		verbAudio := reverb(audioData, request.Channel)
+		if verbAudio == nil {
+			logger("Error applying reverb to audio", logError)
+			return nil, fmt.Errorf("Error applying reverb to audio")
+		}
+		audioData = verbAudio
 	}
 
 	return audioData, nil

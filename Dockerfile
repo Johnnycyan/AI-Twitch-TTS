@@ -2,7 +2,7 @@
 FROM golang:alpine AS build
 
 # Install UPX and other dependencies
-RUN apk add --no-cache upx
+# RUN apk add --no-cache upx
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY static/ ./static/
 RUN go build -ldflags="-s -w" -o main .
 
 # Compress the binary with UPX
-RUN upx --brute main
+# RUN upx --brute main
 
 # Final stage
 FROM alpine:3.20

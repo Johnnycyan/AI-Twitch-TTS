@@ -55,7 +55,7 @@ func deleteAudioFile(filename string) {
 
 func addReverbToAudio(channel string) {
 	// ffmpeg -i input.mp3 -i "reverb.wav" -filter_complex "[0:a]apad=pad_dur=2[dry];[0:a]apad=pad_dur=2,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.8 0.2'" -b:a 320k output.mp3
-	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.8 0.2'", "-b:a", "320k", "output-"+channel+".mp3")
+	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1'", "-b:a", "320k", "output-"+channel+".mp3")
 	err := cmd.Run()
 	if err != nil {
 		log.Println("Failed to add reverb to audio")

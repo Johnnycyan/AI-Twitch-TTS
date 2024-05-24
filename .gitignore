@@ -34,6 +34,7 @@ go.work
 # compile script
 compile.bat
 docker.bat
+docker-dev.bat
 AI-Twitch-TTS
 
 !static/
