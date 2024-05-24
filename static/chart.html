@@ -72,7 +72,7 @@
             <p class="text-white">Total Characters: <span id="total-characters"></span></p>
             <p class="text-white">Total Cost: <span id="total-cost"></span></p>
             <p class="text-white">Characters Left: <span id="characters-left"></span></p>
-            <p class="text-white">Characters Refresh in <span id="characters-reset"></span></p>
+            <p class="text-white">Characters Refresh <span id="characters-reset"></span></p>
         </div>
         <div class="chart-container">
             <canvas id="dataChart"></canvas>
@@ -103,13 +103,13 @@
 
             let resetTime;
             if (daysUntilReset > 0) {
-            resetTime = `${daysUntilReset} day${daysUntilReset > 1 ? 's' : ''}`;
+            resetTime = `in ${daysUntilReset} day${daysUntilReset > 1 ? 's' : ''}`;
             } else if (hoursUntilReset > 0) {
-            resetTime = `${hoursUntilReset} hour${hoursUntilReset > 1 ? 's' : ''}`;
+            resetTime = `in ${hoursUntilReset} hour${hoursUntilReset > 1 ? 's' : ''}`;
             } else if (minutesUntilReset > 0) {
-            resetTime = `${minutesUntilReset} minute${minutesUntilReset > 1 ? 's' : ''}`;
+            resetTime = `in ${minutesUntilReset} minute${minutesUntilReset > 1 ? 's' : ''}`;
             } else if (secondsUntilReset > 0) {
-            resetTime = `${secondsUntilReset} second${secondsUntilReset > 1 ? 's' : ''}`;
+            resetTime = `in ${secondsUntilReset} second${secondsUntilReset > 1 ? 's' : ''}`;
             } else {
             resetTime = 'soon';
             }
