@@ -101,10 +101,18 @@
             const minutesUntilReset = Math.floor((timeUntilReset % (1000 * 60 * 60)) / (1000 * 60));
             const secondsUntilReset = Math.floor((timeUntilReset % (1000 * 60)) / 1000);
 
-            const resetTime = daysUntilReset > 0 ? `${daysUntilReset} day${daysUntilReset > 1 ? 's' : ''}` : 
-                                  hoursUntilReset > 0 ? `${hoursUntilReset} hour${hoursUntilReset > 1 ? 's' : ''}` :
-                                  minutesUntilReset > 0 ? `${minutesUntilReset} minute${minutesUntilReset > 1 ? 's' : ''}` :
-                                  `${secondsUntilReset} second${secondsUntilReset > 1 ? 's' : ''}`;
+            let resetTime;
+            if (daysUntilReset > 0) {
+            resetTime = `${daysUntilReset} day${daysUntilReset > 1 ? 's' : ''}`;
+            } else if (hoursUntilReset > 0) {
+            resetTime = `${hoursUntilReset} hour${hoursUntilReset > 1 ? 's' : ''}`;
+            } else if (minutesUntilReset > 0) {
+            resetTime = `${minutesUntilReset} minute${minutesUntilReset > 1 ? 's' : ''}`;
+            } else if (secondsUntilReset > 0) {
+            resetTime = `${secondsUntilReset} second${secondsUntilReset > 1 ? 's' : ''}`;
+            } else {
+            resetTime = 'soon';
+            }
 
             document.getElementById('characters-left').textContent = charactersLeft;
             document.getElementById('characters-reset').textContent = resetTime;
