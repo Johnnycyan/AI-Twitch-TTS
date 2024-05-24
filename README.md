@@ -132,6 +132,7 @@ services:
       - PALLY_KEYS=${PALLY_KEYS}
       - VOICES=${VOICES}
       - VOICE_MODELS=${VOICE_MODELS}
+      - VOICE_STYLES=${VOICE_STYLES}
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
       - MONGO_USER=${MONGO_USER}
