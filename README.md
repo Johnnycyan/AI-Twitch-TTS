@@ -163,6 +163,7 @@ SERVER_URL       | URL of where the server will be hosted (no protocol) Ex: exam
 TTS_KEY          | Secret key used to authenticate TTS generation
 VOICES           | Json string list of name/id pairs for Elevenlabs voices
 VOICE_MODELS     | Json string list of name/model pairs for Elevenlabs voices (optional)
+VOICE_STYLES     | Json string list of name/style pairs for Elevenlabs voices (optional)
 PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
 SENTRY_URL       | URL for Sentry logging of the client (optional)
 MONGO_HOST       | URL for MongoDB Host (optional)

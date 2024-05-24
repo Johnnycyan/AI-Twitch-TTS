@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 var (
 	voices         []Voice
 	voiceModels    []VoiceModel
+	voiceStyles    []VoiceStyle
 	voice          string
 	defaultVoice   string
 	defaultVoiceID string
@@ -34,6 +36,11 @@ type Voice struct {
 type VoiceModel struct {
 	Name  string `json:"name"`
 	Model string `json:"model"`
+}
+
+type VoiceStyle struct {
+	Name  string `json:"name"`
+	Style string `json:"style"`
 }
 
 type TTSSettings struct {
@@ -66,6 +73,15 @@ func setupVoiceModels() {
 	err := json.Unmarshal([]byte(voiceModelsEnv), &voiceModels)
 	if err != nil {
 		logger("Error unmarshalling voice models: "+err.Error(), logError)
+		return
+	}
+}
+
+func setupVoiceStyles() {
+	voiceStylesEnv := os.Getenv("VOICE_STYLES")
+	err := json.Unmarshal([]byte(voiceStylesEnv), &voiceStyles)
+	if err != nil {
+		logger("Error unmarshalling voice styles: "+err.Error(), logError)
 		return
 	}
 }
@@ -220,6 +236,27 @@ func getVoiceModel(ID string) (string, error) {
 	return "", fmt.Errorf("Voice model not found")
 }
 
+func getVoiceStyle(ID string) (float64, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError)
+		return 0, err
+	}
+	logger("Getting voice style for voice: "+voice, logDebug)
+	for _, v := range voiceStyles {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+			style, err := strconv.ParseFloat(v.Style, 64)
+			if err != nil {
+				logger("Error parsing voice style: "+err.Error(), logError)
+				return 0, err
+			}
+			return style, nil
+		}
+	}
+	logger("Voice style not found", logDebug)
+	return 0, fmt.Errorf("Voice style not found")
+}
+
 func generateAudio(request Request) ([]byte, error) {
 	var verb bool
 	if strings.HasPrefix(request.Text, "(reverb) ") {
@@ -268,8 +305,16 @@ func generateAudio(request Request) ([]byte, error) {
 		format = "mp3_44100_128"
 	}
 
+	var style float64
+	style, err = getVoiceStyle(request.Voice.Voice)
+	if err != nil {
+		style = request.Voice.Style
+	}
+
+	logger("Using style: "+fmt.Sprintf("%f", style), logDebug)
+
 	go func() {
-		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
+		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
 		if err != nil {
 			logger("Error generating TTS audio: "+err.Error(), logError)
 		}
