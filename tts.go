@@ -17,6 +17,7 @@ import (
 
 var (
 	voices         []Voice
+	voiceModels    []VoiceModel
 	voice          string
 	defaultVoice   string
 	defaultVoiceID string
@@ -28,6 +29,11 @@ var (
 type Voice struct {
 	Name string `json:"name"`
 	ID   string `json:"id"`
+}
+
+type VoiceModel struct {
+	Name  string `json:"name"`
+	Model string `json:"model"`
 }
 
 type TTSSettings struct {
@@ -52,6 +58,15 @@ func setupVoices() {
 		defaultVoice = voices[0].Name
 		defaultVoiceID = voices[0].ID
 		logger("Default voice: "+defaultVoice, logDebug)
+	}
+}
+
+func setupVoiceModels() {
+	voiceModelsEnv := os.Getenv("VOICE_MODELS")
+	err := json.Unmarshal([]byte(voiceModelsEnv), &voiceModels)
+	if err != nil {
+		logger("Error unmarshalling voice models: "+err.Error(), logError)
+		return
 	}
 }
 
@@ -109,6 +124,15 @@ func getVoiceID(voice string) (string, error) {
 	for _, v := range voices {
 		if strings.ToLower(v.Name) == strings.ToLower(voice) {
 			return v.ID, nil
+		}
+	}
+	return "", fmt.Errorf("Voice not found")
+}
+
+func getVoiceName(ID string) (string, error) {
+	for _, v := range voices {
+		if v.ID == ID {
+			return v.Name, nil
 		}
 	}
 	return "", fmt.Errorf("Voice not found")
@@ -180,6 +204,22 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 	return true, text
 }
 
+func getVoiceModel(ID string) (string, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError)
+		return "", err
+	}
+	logger("Getting voice model for voice: "+voice, logDebug)
+	for _, v := range voiceModels {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+			return v.Model, nil
+		}
+	}
+	logger("Voice model not found", logDebug)
+	return "", fmt.Errorf("Voice model not found")
+}
+
 func generateAudio(request Request) ([]byte, error) {
 	var verb bool
 	if strings.HasPrefix(request.Text, "(reverb) ") {
@@ -193,6 +233,24 @@ func generateAudio(request Request) ([]byte, error) {
 
 	ctx := context.Background()
 	pipeReader, pipeWriter := io.Pipe()
+
+	var model string
+	voiceModel, err := getVoiceModel(request.Voice.Voice)
+	if err != nil {
+		model = "eleven_multilingual_v2"
+	}
+
+	if voiceModel != "" {
+		if voiceModel == "turbo" {
+			model = "eleven_turbo_v2"
+		} else {
+			model = "eleven_multilingual_v2"
+		}
+	} else {
+		model = "eleven_multilingual_v2"
+	}
+
+	logger("Using model: "+model, logDebug)
 
 	clientData, err := ttsClient.GetUserInfo(ctx)
 	if err != nil {
@@ -211,7 +269,7 @@ func generateAudio(request Request) ([]byte, error) {
 	}
 
 	go func() {
-		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, "eleven_multilingual_v2", request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
+		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: request.Voice.Style})
 		if err != nil {
 			logger("Error generating TTS audio: "+err.Error(), logError)
 		}

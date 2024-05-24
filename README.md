@@ -131,6 +131,7 @@ services:
       - TTS_KEY=${TTS_KEY}
       - PALLY_KEYS=${PALLY_KEYS}
       - VOICES=${VOICES}
+      - VOICE_MODELS=${VOICE_MODELS}
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
       - MONGO_USER=${MONGO_USER}
@@ -161,6 +162,7 @@ ELEVENLABS_KEY   | Elevenlabs API key
 SERVER_URL       | URL of where the server will be hosted (no protocol) Ex: example.com
 TTS_KEY          | Secret key used to authenticate TTS generation
 VOICES           | Json string list of name/id pairs for Elevenlabs voices
+VOICE_MODELS     | Json string list of name/model pairs for Elevenlabs voices (optional)
 PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
 SENTRY_URL       | URL for Sentry logging of the client (optional)
 MONGO_HOST       | URL for MongoDB Host (optional)
