@@ -87,6 +87,8 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 
 * **Internet**
 
+* **ffmpeg**
+
 <a name="-installation"></a>
 
 ###  Installation
@@ -175,7 +177,7 @@ MONGO_USER       | Username for MongoDB (optional)
 MONGO_PASS       | Password for MongoDB (optional)
 MONGO_DB         | Database name for MongoDB (optional)
 ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)
-FFMPEG_ENABLED   | Bool for if you have ffmpeg installed for voice modifiers (optional)
+FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
 
 <a name="-usage"></a>
 

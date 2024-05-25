@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -22,12 +23,13 @@ func setupENV() {
 	serverURL = os.Getenv("SERVER_URL")
 	sentryURL = os.Getenv("SENTRY_URL")
 	ttsKey = os.Getenv("TTS_KEY")
+	ffmpegEnabled := strings.ToLower(os.Getenv("FFMPEG_ENABLED"))
 	mongoUser = os.Getenv("MONGO_USER")
 	mongoPass = os.Getenv("MONGO_PASS")
 	mongoHost = os.Getenv("MONGO_HOST")
 	mongoPort = os.Getenv("MONGO_PORT")
 	dbName = os.Getenv("MONGO_DB")
-	if elevenKey == "" || serverURL == "" || ttsKey == "" {
+	if elevenKey == "" || serverURL == "" || ttsKey == "" || ffmpegEnabled != "true" {
 		logger("Missing required environment variables", logError)
 		return
 	}

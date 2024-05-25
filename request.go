@@ -237,8 +237,15 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	params := getURLParams(r)
 
-	if len(requests) > 0 {
-		logger("Last audio is still playing on "+requests[0].Channel, logInfo)
+	var channelRequests []Request
+	for _, request := range requests {
+		if request.Channel == params.Channel {
+			channelRequests = append(channelRequests, request)
+		}
+	}
+
+	if len(channelRequests) > 0 {
+		logger("Last audio is still playing on "+channelRequests[0].Channel, logInfo)
 		http.Error(w, "Wait for the last audio to finish playing", http.StatusTooManyRequests)
 		return
 	}
@@ -393,14 +400,10 @@ func sendAudio(request Request, audioData []byte) {
 	}
 }
 
-type AudioData struct {
-	Audio []byte
-}
-
 func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 	logger("Processing request", logInfo)
+	allAudio := []byte{}
 	var audio []byte
-	var audioData []AudioData
 	var err error
 	var bad = false
 	for _, request := range requests {
@@ -415,7 +418,8 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				http.Error(w, "Error generating audio. Check your inputs.", http.StatusInternalServerError)
 				return
 			}
-			if audio == nil || len(audio) == 0 {
+			newAudio := convertAudio(audio, params.Channel)
+			if newAudio == nil || len(newAudio) == 0 {
 				logger("No audio data generated", logError)
 				bad = true
 				if len(requests) > 0 {
@@ -424,7 +428,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				http.Error(w, "Error getting audio data. Check your inputs.", http.StatusInternalServerError)
 				return
 			}
-			audioData = append(audioData, AudioData{Audio: audio})
+			allAudio = append(allAudio, newAudio...)
 			if mongoEnabled {
 				data, err := createData(request)
 				if err != nil {
@@ -449,49 +453,20 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				http.Error(w, "You specified an effect that doesn't exist: "+request.Effect, http.StatusBadRequest)
 				return
 			}
-			audioData = append(audioData, AudioData{Audio: audio})
-			// go handleEffect(w, r, request)
+			newAudio := convertAudio(audio, params.Channel)
+			allAudio = append(allAudio, newAudio...)
 		}
 	}
 
-	// var allAudio []byte
-	// if !bad {
-	// 	// combine the audio data into a single variable
-	// 	for i, data := range audioData {
-	// 		if i == 0 {
-	// 			allAudio = data.Audio
-	// 		} else {
-	// 			allAudio = append(allAudio, data.Audio...)
-	// 		}
-	// 	}
-	// 	sendAudio(requests[0], allAudio)
-	// }
-
-	var replyVerifyTicker = time.NewTicker(120 * time.Second)
 	if !bad {
-		for i, data := range audioData {
-			replyVerifyTicker.Reset(120 * time.Second)
-			sendAudio(requests[i], data.Audio)
-			time.Sleep(200 * time.Millisecond) // Wait for value to change
-			for playing[requests[i].Time] {
-				select {
-				case <-replyVerifyTicker.C:
-					requestName := getAudioDataName(requests[i].Time)
-					logger("No reply received for "+requestName, logInfo)
-					clearChannelRequests(requests[i].Channel)
-					http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
-					return
-				default:
-					time.Sleep(50 * time.Millisecond)
-				}
+		var validRequest Request
+		for _, request := range requests {
+			if request.Channel == params.Channel {
+				validRequest = request
+				break
 			}
 		}
-	} else {
-		logger("Error processing request", logError)
-		if len(requests) > 0 {
-			clearChannelRequests(params.Channel)
-		}
-		http.Error(w, "Error processing request. Check your inputs.", http.StatusInternalServerError)
+		sendAudio(validRequest, allAudio)
 	}
 
 	if len(requests) > 0 {

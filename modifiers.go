@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -47,22 +46,19 @@ func getVoiceModifiers(ID string) (string, error) {
 func loadAudioDataFromFile(filename string) []byte {
 	file, err := os.Open(filename)
 	if err != nil {
-		log.Println("File not found")
-		log.Fatal(err)
+		logger("Failed to open file: "+filename, logError)
 	}
 	defer file.Close()
 
 	stat, err := file.Stat()
 	if err != nil {
-		log.Println("Failed to get file info")
-		log.Fatal(err)
+		logger("Failed to get file stats: "+filename, logError)
 	}
 
 	data := make([]byte, stat.Size())
 	_, err = file.Read(data)
 	if err != nil {
-		log.Println("Failed to read file")
-		log.Fatal(err)
+		logger("Failed to read file: "+filename, logError)
 	}
 
 	return data
@@ -71,23 +67,20 @@ func loadAudioDataFromFile(filename string) []byte {
 func saveAudioDataToFile(filename string, data []byte) {
 	file, err := os.Create(filename)
 	if err != nil {
-		log.Println("Failed to create file")
-		log.Fatal(err)
+		logger("Failed to create file: "+filename, logError)
 	}
 	defer file.Close()
 
 	_, err = file.Write(data)
 	if err != nil {
-		log.Println("Failed to write to file")
-		log.Fatal(err)
+		logger("Failed to write to file: "+filename, logError)
 	}
 }
 
 func deleteAudioFile(filename string) {
 	err := os.Remove(filename)
 	if err != nil {
-		log.Println("Failed to delete file: " + filename)
-		log.Fatal(err)
+		logger("Failed to delete file: "+filename, logError)
 	}
 }
 
@@ -96,8 +89,7 @@ func addReverbToAudio(channel string) {
 	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1'", "-b:a", "320k", "output-"+channel+".mp3")
 	err := cmd.Run()
 	if err != nil {
-		log.Println("Failed to add reverb to audio")
-		log.Fatal(err)
+		logger("Failed to add reverb to audio", logError)
 	}
 }
 
@@ -118,4 +110,22 @@ func reverb(data []byte, channel string) []byte {
 	deleteAudioFile("output-" + channel + ".mp3")
 
 	return reverbData
+}
+
+func convertAudio(data []byte, channel string) []byte {
+	logger("Converting audio", logDebug)
+	saveAudioDataToFile("convert-"+channel+".mp3", data)
+
+	cmd := exec.Command("ffmpeg", "-i", "convert-"+channel+".mp3", "-ar", "44100", "-ac", "2", "-b:a", "320k", "convertout-"+channel+".mp3")
+	err := cmd.Run()
+	if err != nil {
+		logger("Failed to convert audio", logError)
+	}
+
+	newData := loadAudioDataFromFile("convertout-" + channel + ".mp3")
+
+	deleteAudioFile("convert-" + channel + ".mp3")
+	deleteAudioFile("convertout-" + channel + ".mp3")
+
+	return newData
 }
