@@ -1,10 +1,48 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
+
+var (
+	voiceModifiers []VoiceModifier
+)
+
+type VoiceModifier struct {
+	Name     string `json:"name"`
+	Modifier string `json:"modifier"`
+}
+
+func setupVoiceModifiers() {
+	voiceModifiersEnv := os.Getenv("VOICE_MODIFIERS")
+	err := json.Unmarshal([]byte(voiceModifiersEnv), &voiceModifiers)
+	if err != nil {
+		logger("Error unmarshalling voice styles: "+err.Error(), logError)
+		return
+	}
+}
+
+func getVoiceModifiers(ID string) (string, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError)
+		return "", err
+	}
+	logger("Getting voice modifier for voice: "+voice, logDebug)
+	for _, v := range voiceModifiers {
+		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+			modifier := v.Modifier
+			return modifier, nil
+		}
+	}
+	logger("Voice modifier not found", logDebug)
+	return "", fmt.Errorf("Voice modifier not found")
+}
 
 func loadAudioDataFromFile(filename string) []byte {
 	file, err := os.Open(filename)

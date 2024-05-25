@@ -258,12 +258,27 @@ func getVoiceStyle(ID string) (float64, error) {
 }
 
 func generateAudio(request Request) ([]byte, error) {
+	voiceModifierList, err := getVoiceModifiers(request.Voice.Voice)
+	if err != nil {
+		logger("Error getting voice modifier: "+err.Error(), logError)
+		return nil, err
+	}
+
+	// split the voiceModifierList into a list of voice modifiers by splitting on the comma
+	voiceModifiers := strings.Split(voiceModifierList, ",")
+
 	var verb bool
 	if strings.HasPrefix(request.Text, "(reverb) ") {
 		verb = true
 		request.Text = strings.TrimPrefix(request.Text, "(reverb) ")
 	} else {
 		verb = false
+	}
+
+	for _, modifier := range voiceModifiers {
+		if modifier == "reverb" {
+			verb = true
+		}
 	}
 
 	logger("Generating TTS audio for text: "+request.Text, logDebug)

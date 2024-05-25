@@ -54,5 +54,6 @@ func setupENV() {
 	setupVoices()
 	setupVoiceModels()
 	setupVoiceStyles()
+	setupVoiceModifiers()
 	setupDB()
 }
