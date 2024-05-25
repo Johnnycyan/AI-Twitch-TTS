@@ -24,7 +24,6 @@
 - [ Overview](#-overview)
 - [ Example](#-example)
 - [ Features](#-features)
-- [ Modules](#-modules)
 - [ Getting Started](#-getting-started)
   - [ Installation](#-installation)
   - [ Usage](#-usage)
@@ -59,23 +58,6 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 | 📄 | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints. |
 | 🔌 | **Integrations**  | Relies on external libraries like godotenv, go-randomdata, WebSocket for Go, and others to enhance functionality like environment variable loading, random data generation, WebSocket communication, and real-time audio streaming. |
 | 🧩 | **Modularity**    | Codebase exhibits modularity through separate modules for logging, WebSocket handling, text-to-speech requests, alerts retrieval, and Pally WebSocket connections. Modules are designed for reusability and maintainability. |
-
----
-
-<a name="-modules"></a>
-
-##  Modules
-
-| File                                                                                     | Summary                                                                                                                                                                                                                                                                                        |
-| ---                                                                                      | ---                                                                                                                                                                                                                                                                                            |
-| [alerts.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/alerts.go)           | Retrieves and delivers random alert sounds based on channel. Checks for available sound files in the designated folder and selects one at random. Handles errors in case of missing or inaccessible files.                                                                                     |
-| [environment.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/environment.go) | Loads environment variables using godotenv, ensuring essential values are present. Sets up necessary configurations for the AI-Twitch-TTS application to function correctly, maintaining a robust system.                                                                                      |
-| [logging.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/logging.go)         | Enables logging customization based on user-defined levels to ensure relevant messages are displayed according to set verbosity preferences.                                                                                                                                                   |
-| [main.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/main.go)               | Defines HTTP handlers for text-to-speech and websockets, serving HTML template. Orchestrates server setup and logging, listening on specified port.                                                                                                                                            |
-| [pally.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/pally.go)             | Establishes and manages connections to [Pally](https://pally.gg) WebSocket, processing tip notifications for a Twitch extension. Handles message parsing and client interactions, ensuring timely and accurate message delivery. Maintains WebSocket communication and connection stability for real-time updates. |
-| [tts.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/tts.go)                 | Handles text-to-speech requests by generating audio data and sending it to connected clients based on specified channels and voices. Manages voice configurations, client connections, rate limits, and authorization keys for seamless TTS functionality.                                     |
-| [websockets.go](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/websockets.go)   | Implements WebSocket handling for client connections, managing periodic pings, and message processing. Dynamically assigns client names, tracks active clients, and logs events. Enhances real-time communication in the AI-Twitch-TTS repository architecture.                                |
-| [index.html](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/index.html)         | Implements real-time audio streaming via WebSocket in the AI-Twitch-TTS client. Handles WebSocket connection, audio processing, pings, and restarts. Auto-reconnects on close.                                                                                                                 |
 
 ---
 
