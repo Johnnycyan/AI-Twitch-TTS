@@ -373,9 +373,8 @@ func getFormattedParts(parts []string) ([]Part, error) {
 
 func sendAudio(request Request, audioData []byte) {
 	sendTextMessage(request.Channel, "start "+request.Time)
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	requestName := getAudioDataName(request.Time)
-	playing[request.Time] = true
 	for client, clientChannel := range clients {
 		if clientChannel == request.Channel {
 			clientName := getClientName(fmt.Sprintf("%p", client))
@@ -457,9 +456,9 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 	var replyVerifyTicker = time.NewTicker(120 * time.Second)
 	if !bad {
 		for i, data := range audioData {
+			playing[requests[i].Time] = true
 			replyVerifyTicker.Reset(120 * time.Second)
 			sendAudio(requests[i], data.Audio)
-			time.Sleep(200 * time.Millisecond) // Wait for value to change
 			for playing[requests[i].Time] {
 				select {
 				case <-replyVerifyTicker.C:
@@ -467,6 +466,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 					logger("No reply received for "+requestName, logInfo)
 					clearChannelRequests(requests[i].Channel)
 					http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
+					sendTextMessage(requests[i].Channel, "reload")
 					return
 				default:
 					time.Sleep(50 * time.Millisecond)

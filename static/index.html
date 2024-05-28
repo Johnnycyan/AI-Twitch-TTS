@@ -73,6 +73,9 @@
 							logWithTimestamp('Updating to version:', version);
 							window.location.href = `https://${serverURL}/?channel=${channel}&v=${version}`;
 							return;
+						} else if (event.data.startsWith('refresh')) {
+							logWithTimestamp('Refreshing page...');
+							window.location.reload();
 						}
 					} else if (event.data instanceof Blob) {
 						logWithTimestamp('Received audio data:', event.data);
