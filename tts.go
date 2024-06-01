@@ -121,6 +121,23 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 
 	sendAudio(request, audioData)
 
+	replyVerifyTicker := time.NewTicker(120 * time.Second)
+
+	playing[request.Time] = true
+	for playing[request.Time] {
+		select {
+		case <-replyVerifyTicker.C:
+			requestName := getAudioDataName(request.Time)
+			logger("No reply received for "+requestName, logInfo)
+			clearChannelRequests(request.Channel)
+			http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
+			sendTextMessage(request.Channel, "reload")
+			return
+		default:
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+
 	clearChannelRequests(request.Channel)
 }
 

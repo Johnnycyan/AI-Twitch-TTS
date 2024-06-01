@@ -237,8 +237,16 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	params := getURLParams(r)
 
-	if len(requests) > 0 {
-		logger("Last audio is still playing on "+requests[0].Channel, logInfo)
+	var checkRequest []Request
+
+	for _, request := range requests {
+		if request.Channel == params.Channel {
+			checkRequest = append(checkRequest, request)
+		}
+	}
+
+	if len(checkRequest) > 0 {
+		logger("Last audio is still playing on "+checkRequest[0].Channel, logInfo)
 		http.Error(w, "Wait for the last audio to finish playing", http.StatusTooManyRequests)
 		return
 	}
@@ -246,7 +254,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	if len(clients) == 0 {
 		logger("No connected clients", logInfo)
 		http.Error(w, "No connected clients", http.StatusNotFound)
-		if len(requests) > 0 {
+		if len(checkRequest) > 0 {
 			clearChannelRequests(params.Channel)
 		}
 		return
@@ -453,7 +461,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 		}
 	}
 
-	var replyVerifyTicker = time.NewTicker(120 * time.Second)
+	replyVerifyTicker := time.NewTicker(120 * time.Second)
 	if !bad {
 		for i, data := range audioData {
 			playing[requests[i].Time] = true

@@ -77,6 +77,21 @@ type Page struct {
 func handlePallyMessage(message []byte, channel string) {
 	logger("Received message from Pally", logDebug)
 
+	var checkRequest []Request
+
+	for _, request := range requests {
+		if request.Channel == channel {
+			checkRequest = append(checkRequest, request)
+		}
+	}
+
+	if len(checkRequest) > 0 {
+		logger("Last audio is still playing on "+channel, logInfo)
+		time.Sleep(1 * time.Second)
+		go handlePallyMessage(message, channel)
+		return
+	}
+
 	time_of_message := time.Now()
 
 	var found bool
@@ -94,8 +109,8 @@ func handlePallyMessage(message []byte, channel string) {
 	username := campaignTipNotify.Payload.CampaignTip.DisplayName
 	if username == "" {
 		logger(fmt.Sprintf("%v", campaignTipNotify), logDebug)
-		logger("No username found in message so assuming it's not a tip notification", logDebug)
-		return
+		logger("No username found in message so assuming it's an anonymous tip", logInfo)
+		username = "Anonymous"
 	}
 
 	// Check if there is a connected client for the channel
@@ -123,8 +138,18 @@ func handlePallyMessage(message []byte, channel string) {
 	dollars := amount / 100
 	cents := amount % 100
 	var amountFormatted string
-	if cents == 0 {
+	if cents == 0 && dollars == 1 {
+		amountFormatted = fmt.Sprintf("%d dollar", dollars)
+	} else if cents == 0 && dollars > 1 {
 		amountFormatted = fmt.Sprintf("%d dollars", dollars)
+	} else if cents == 1 && dollars == 0 {
+		amountFormatted = fmt.Sprintf("%d cent", cents)
+	} else if cents == 1 && dollars == 1 {
+		amountFormatted = fmt.Sprintf("%d dollar and %d cent", dollars, cents)
+	} else if cents == 1 && dollars > 1 {
+		amountFormatted = fmt.Sprintf("%d dollars and %d cent", dollars, cents)
+	} else if cents > 1 && dollars == 0 {
+		amountFormatted = fmt.Sprintf("%d cents", cents)
 	} else {
 		amountFormatted = fmt.Sprintf("%d dollars and %02d cents", dollars, cents)
 	}
@@ -134,6 +159,7 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
+	ttsMessage = convertNumberToWords(ttsMessage)
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo)
 	request := Request{
@@ -141,7 +167,7 @@ func handlePallyMessage(message []byte, channel string) {
 		Text:    ttsMessage,
 		Time:    requestTime,
 		Voice: TTSSettings{
-			Voice:           defaultVoice,
+			Voice:           defaultVoiceID,
 			Stability:       0.40,
 			SimilarityBoost: 1.00,
 			Style:           0.00,
