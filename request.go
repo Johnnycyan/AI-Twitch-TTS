@@ -232,6 +232,12 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	logger("Received Audio request", logInfo)
+	defer func() {
+		if r := recover(); r != nil {
+			logger("Recovered from panic in handleRequest: "+fmt.Sprintf("%v", r), logError)
+			http.Error(w, "Error processing request. Maybe you used an unsupported symbol?", http.StatusInternalServerError)
+		}
+	}()
 
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 

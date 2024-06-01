@@ -85,43 +85,61 @@
 					}
 					const reader = new FileReader();
 					reader.onload = () => {
-						const audioData = reader.result;
-						const audioContext = new AudioContext();
-						audioContext.decodeAudioData(audioData, buffer => {
-							const source = audioContext.createBufferSource();
-							source.buffer = buffer;
+						try {
+							const audioData = reader.result;
+							const audioContext = new AudioContext();
+							audioContext.decodeAudioData(audioData, buffer => {
+								try {
+									const source = audioContext.createBufferSource();
+									source.buffer = buffer;
 
-							const gainNode = audioContext.createGain();
-							gainNode.gain.value = preGain;
+									const gainNode = audioContext.createGain();
+									gainNode.gain.value = preGain;
 
-							// Create a DynamicsCompressorNode
-							const compressor = audioContext.createDynamicsCompressor();
-							compressor.threshold.value = -50;
-							compressor.knee.value = 40;
-							compressor.ratio.value = 12;
-							compressor.attack.value = 0;
-							compressor.release.value = 0.25;
+									// Create a DynamicsCompressorNode
+									const compressor = audioContext.createDynamicsCompressor();
+									compressor.threshold.value = -50;
+									compressor.knee.value = 40;
+									compressor.ratio.value = 12;
+									compressor.attack.value = 0;
+									compressor.release.value = 0.25;
 
-							// Connect the nodes
-							source.connect(gainNode);
-							source.connect(compressor);
-							compressor.connect(audioContext.destination);
+									// Connect the nodes
+									source.connect(gainNode);
+									source.connect(compressor);
+									compressor.connect(audioContext.destination);
 
-							// Set up the ended event listener
-							source.onended = () => {
-								logWithTimestamp('Audio playback completed');
-								socket.send('confirm ' + requestTime);
-								requestTime = null;
-							};
+									// Set up the ended event listener
+									source.onended = () => {
+										logWithTimestamp('Audio playback completed');
+										socket.send('confirm ' + requestTime);
+										requestTime = null;
+									};
 
-							source.start();
-						});
+									source.start();
+								} catch (error) {
+									errorWithTimestamp('Error playing audio:', error);
+									socket.send('confirm ' + requestTime);
+									requestTime = null;
+									logWithTimestamp('Restarting...');
+									window.location.reload();
+								}
+							});
+						} catch (error) {
+							errorWithTimestamp('Error decoding audio data:', error);
+							socket.send('confirm ' + requestTime);
+							requestTime = null;
+							logWithTimestamp('Restarting...');
+							window.location.reload();
+							// clearInterval(restart);
+							// setInterval(restart, 1800000);
+						}
 					};
 					reader.readAsArrayBuffer(event.data);
 					reader.onerror = error => {
 						errorWithTimestamp('Error reading audio data:', error);
 						logWithTimestamp('Restarting...');
-						restart();
+						window.location.reload();
 						// clearInterval(restart);
 						// setInterval(restart, 1800000);
 					};
@@ -130,7 +148,7 @@
 					socket.send('confirm ' + requestTime);
 					requestTime = null;
 					logWithTimestamp('Restarting...');
-					restart();
+					window.location.reload();
 					// clearInterval(restart);
 					// setInterval(restart, 1800000);
 				}
