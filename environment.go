@@ -53,6 +53,7 @@ func setupENV() {
 		log.Fatal("Not enough arguments provided. Please provide at least a port number and optionally a log level.")
 	}
 	setupPally()
+	setupPallyVoices()
 	setupVoices()
 	setupVoiceModels()
 	setupVoiceStyles()

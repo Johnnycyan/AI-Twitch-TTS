@@ -11,12 +11,32 @@ import (
 )
 
 var (
-	pallyKeys []PallyKeys
+	pallyKeys   []PallyKeys
+	pallyVoices []PallyVoice
 )
 
 type PallyKeys struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`
+}
+
+type PallyVoice struct {
+	Channel string `json:"channel"`
+	Voice   string `json:"voice"`
+}
+
+func getPallyVoiceID(channel string) string {
+	for _, voice := range pallyVoices {
+		if voice.Channel == channel {
+			pallyVoiceID, err := getVoiceID(voice.Voice)
+			if err != nil {
+				logger("Error getting voice ID: "+err.Error(), logError)
+				return defaultVoiceID
+			}
+			return pallyVoiceID
+		}
+	}
+	return defaultVoiceID
 }
 
 func setupPally() {
@@ -32,6 +52,15 @@ func setupPally() {
 		} else {
 			go connectToPallyWebsocket(key.Name, key.Key)
 		}
+	}
+}
+
+func setupPallyVoices() {
+	voices := os.Getenv("PALLY_VOICES")
+	err := json.Unmarshal([]byte(voices), &pallyVoices)
+	if err != nil {
+		logger("Error unmarshalling Pally voices: "+err.Error(), logError)
+		return
 	}
 }
 
@@ -163,21 +192,37 @@ func handlePallyMessage(message []byte, channel string) {
 	ttsMessage = convertNumberToWords(ttsMessage)
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo)
+	voice := getPallyVoiceID(channel)
+	style, err := getVoiceStyle(voice)
+	if err != nil {
+		logger("Error getting voice style: "+err.Error(), logError)
+		return
+	}
 	request := Request{
 		Channel: channel,
 		Text:    ttsMessage,
 		Time:    requestTime,
 		Voice: TTSSettings{
-			Voice:           defaultVoiceID,
+			Voice:           voice,
 			Stability:       0.40,
 			SimilarityBoost: 1.00,
-			Style:           0.00,
+			Style:           style,
 		},
 	}
 
 	// Add the request to the queue
 	requests = append(requests, request)
 	go handleTTSAudio(nil, nil, request, true)
+
+	if mongoEnabled {
+		request.Channel = request.Channel + "-pally"
+		data, err := createData(request)
+		if err != nil {
+			logger("Error creating data: "+err.Error(), logError)
+			return
+		}
+		addData(data)
+	}
 }
 
 func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {

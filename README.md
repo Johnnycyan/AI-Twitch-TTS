@@ -114,6 +114,7 @@ services:
       - SENTRY_URL=${SENTRY_URL}
       - TTS_KEY=${TTS_KEY}
       - PALLY_KEYS=${PALLY_KEYS}
+      - PALLY_VOICES=${PALLY_VOICES}
       - VOICES=${VOICES}
       - VOICE_MODELS=${VOICE_MODELS}
       - VOICE_STYLES=${VOICE_STYLES}
@@ -152,6 +153,7 @@ VOICE_MODELS     | Json string list of name/model pairs for Elevenlabs voices (o
 VOICE_STYLES     | Json string list of name/style pairs for Elevenlabs voices (optional)
 VOICE_MODIFIERS  | Json string list of name/modifier pairs for Elevenlabs voices (optional)
 PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
+PALLY_VOICES     | Json string list of channel/voice pairs for [Pally](https://pally.gg) (optional)
 SENTRY_URL       | URL for Sentry logging of the client (optional)
 MONGO_HOST       | URL for MongoDB Host (optional)
 MONGO_PORT       | Port for MongoDB (optional)
@@ -160,6 +162,7 @@ MONGO_PASS       | Password for MongoDB (optional)
 MONGO_DB         | Database name for MongoDB (optional)
 ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)
 FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
+
 
 <a name="-usage"></a>
 

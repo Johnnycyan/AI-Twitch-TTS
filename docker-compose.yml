@@ -12,6 +12,7 @@ services:
       - SENTRY_URL=${SENTRY_URL}
       - TTS_KEY=${TTS_KEY}
       - PALLY_KEYS=${PALLY_KEYS}
+      - PALLY_VOICES=${PALLY_VOICES}
       - VOICES=${VOICES}
       - VOICE_MODELS=${VOICE_MODELS}
       - VOICE_STYLES=${VOICE_STYLES}
