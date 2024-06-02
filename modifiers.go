@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -128,4 +130,32 @@ func convertAudio(data []byte, channel string) []byte {
 	deleteAudioFile("convertout-" + channel + ".mp3")
 
 	return newData
+}
+
+func getAudioLength(data []byte) (int, error) {
+	logger("Getting audio length", logDebug)
+	saveAudioDataToFile("length.mp3", data)
+
+	cmd := exec.Command("ffprobe", "-i", "length.mp3", "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0")
+	output, err := cmd.Output()
+	if err != nil {
+		logger("Failed to get audio length", logError)
+		return 0, err
+	}
+
+	length := string(output)
+	length = strings.TrimSuffix(length, "\n")
+
+	deleteAudioFile("length.mp3")
+
+	//round up to the nearest second
+	float, err := strconv.ParseFloat(length, 64)
+	if err != nil {
+		logger("Failed to convert audio length to float", logError)
+		return 0, err
+	}
+
+	rounded := math.Ceil(float) + 1
+
+	return int(rounded), nil
 }

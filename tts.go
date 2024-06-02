@@ -93,6 +93,8 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 		return
 	}
 
+	var waitTime int
+
 	if alert {
 		alertSound, alertExists := getAlertSound(request.Channel)
 
@@ -101,6 +103,13 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 			if err != nil {
 				logger("Error reading alert sound: "+err.Error(), logError)
 			} else {
+				waitTime, err = getAudioLength(audioData)
+				if err != nil {
+					logger("Error getting alert length: "+err.Error(), logError)
+					waitTime = 5
+				} else {
+					logger("Alert length of "+fmt.Sprintf("%d", waitTime), logDebug)
+				}
 				for client, clientChannel := range clients {
 					clientName := getClientName(fmt.Sprintf("%p", client))
 					if clientChannel == request.Channel {
@@ -114,7 +123,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 						}
 					}
 				}
-				time.Sleep(3 * time.Second)
+				time.Sleep(time.Duration(waitTime) * time.Second)
 			}
 		}
 	}
