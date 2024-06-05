@@ -17,7 +17,7 @@ var (
 func setupENV() {
 	err := godotenv.Load()
 	if err != nil {
-		logger("Error loading .env file", logError)
+		logger("Error loading .env file", logError, "Universal")
 	}
 	elevenKey = os.Getenv("ELEVENLABS_KEY")
 	serverURL = os.Getenv("SERVER_URL")
@@ -30,14 +30,14 @@ func setupENV() {
 	mongoPort = os.Getenv("MONGO_PORT")
 	dbName = os.Getenv("MONGO_DB")
 	if elevenKey == "" || serverURL == "" || ttsKey == "" || ffmpegEnabled != "true" {
-		logger("Missing required environment variables", logError)
+		logger("Missing required environment variables", logError, "Universal")
 		return
 	}
 	if mongoHost == "" || mongoPort == "" || dbName == "" {
-		logger("MongoDB environment variables not provided. MongoDB will be disabled.", logInfo)
+		logger("MongoDB environment variables not provided. MongoDB will be disabled.", logInfo, "Universal")
 		mongoEnabled = false
 	} else {
-		logger("MongoDB environment variables provided. MongoDB will be enabled.", logInfo)
+		logger("MongoDB environment variables provided. MongoDB will be enabled.", logInfo, "Universal")
 		mongoEnabled = true
 	}
 	createClient()

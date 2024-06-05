@@ -72,7 +72,7 @@ func getAudioDataName(audioData string) string {
 }
 
 func convertNumberToWords(text string) string {
-	logger("Converting numbers to words", logDebug)
+	logger("Converting numbers to words", logDebug, "Universal")
 	// find numbers in the string, convert them to words and replace them in the string. I want to find them even if it's for example xdd34624 so not only numbers that are separated by spaces
 	// I'm using a regex to find the numbers and then convert them to words
 
@@ -81,10 +81,10 @@ func convertNumberToWords(text string) string {
 	numbers := re.FindAllString(text, -1)
 
 	if numbers == nil {
-		logger("No numbers found in the text", logDebug)
+		logger("No numbers found in the text", logDebug, "Universal")
 		return text
 	}
-	logger("Numbers found: "+fmt.Sprintf("%+v", numbers), logDebug)
+	logger("Numbers found: "+fmt.Sprintf("%+v", numbers), logDebug, "Universal")
 
 	// add a space between any string character and number
 	text = re.ReplaceAllString(text, " $0") // example: 123, 123.48, xdd33444 -> 123, 123.48, xdd 33444
@@ -106,12 +106,12 @@ func convertNumberToWords(text string) string {
 }
 
 func getURLParams(r *http.Request) *URLParams {
-	logger("Getting URL parameters", logDebug)
-
 	channel := strings.ToLower(r.URL.Query().Get("channel"))
 	if channel == "" {
 		return nil
 	}
+
+	logger("Getting URL parameters", logDebug, channel)
 
 	authKey := r.URL.Query().Get("key")
 	if authKey == "" {
@@ -166,12 +166,11 @@ func getURLParams(r *http.Request) *URLParams {
 }
 
 func addPartsToRequest(parts []Part, requestTime string, params *URLParams) error {
-	logger("Adding parts to request", logDebug)
 	for _, part := range parts {
 		if part.Type == "text" {
 			voice, err := getVoiceID(params.FallbackVoice)
 			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError)
+				logger("Error getting voice ID: "+err.Error(), logError, params.Channel)
 				if len(requests) > 0 {
 					clearChannelRequests(params.Channel)
 				}
@@ -195,7 +194,7 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 		} else if part.Type == "voice" {
 			voice, err := getVoiceID(part.Voice)
 			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError)
+				logger("Error getting voice ID: "+err.Error(), logError, params.Channel)
 				if len(requests) > 0 {
 					clearChannelRequests(params.Channel)
 				}
@@ -231,17 +230,18 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
-	logger("Received Audio request", logInfo)
-	defer func() {
-		if r := recover(); r != nil {
-			logger("Recovered from panic in handleRequest: "+fmt.Sprintf("%v", r), logError)
-			http.Error(w, "Error processing request. Maybe you used an unsupported symbol?", http.StatusInternalServerError)
-		}
-	}()
-
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	params := getURLParams(r)
+
+	defer func(channel string) {
+		if r := recover(); r != nil {
+			logger("Recovered from panic in handleRequest: "+fmt.Sprintf("%v", r), logError, channel)
+			http.Error(w, "Error processing request. Maybe you used an unsupported symbol?", http.StatusInternalServerError)
+		}
+	}(params.Channel)
+
+	logger("Received Audio request", logInfo, params.Channel)
 
 	var checkRequest []Request
 
@@ -252,13 +252,13 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(checkRequest) > 0 {
-		logger("Last audio is still playing on "+checkRequest[0].Channel, logInfo)
+		logger("Last audio is still playing", logInfo, checkRequest[0].Channel)
 		http.Error(w, "Wait for the last audio to finish playing", http.StatusTooManyRequests)
 		return
 	}
 
 	if len(clients) == 0 {
-		logger("No connected clients", logInfo)
+		logger("No connected clients", logInfo, params.Channel)
 		http.Error(w, "No connected clients", http.StatusNotFound)
 		if len(checkRequest) > 0 {
 			clearChannelRequests(params.Channel)
@@ -271,13 +271,13 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	for client, clientChannel := range clients {
 		clientName := getClientName(fmt.Sprintf("%p", client))
 		if clientChannel == params.Channel {
-			logger("Found client "+clientName+" for channel "+params.Channel, logDebug)
+			logger("Found client "+clientName, logDebug, params.Channel)
 			found = true
 			break
 		}
 	}
 	if found == false {
-		logger("No connected client for channel "+params.Channel, logInfo)
+		logger("No connected client", logInfo, params.Channel)
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
 		if len(requests) > 0 {
 			clearChannelRequests(params.Channel)
@@ -286,27 +286,30 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !validVoice(params.FallbackVoice) {
-		logger("Invalid fallback voice: "+params.FallbackVoice, logInfo)
+		logger("Invalid fallback voice: "+params.FallbackVoice, logInfo, params.Channel)
 		params.FallbackVoice = defaultVoice
 	}
 
+	logger("Getting text parts", logDebug, params.Channel)
 	messages, err := getTextParts(params.Text)
 	if err != nil {
-		logger("Error getting text parts: "+err.Error(), logError)
+		logger("Error getting text parts: "+err.Error(), logError, params.Channel)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	logger("Getting formatted parts", logDebug, params.Channel)
 	parts, err := getFormattedParts(messages)
 	if err != nil {
-		logger("Error getting formatted parts: "+err.Error(), logError)
+		logger("Error getting formatted parts: "+err.Error(), logError, params.Channel)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	logger("Adding parts to request", logDebug, params.Channel)
 	err = addPartsToRequest(parts, requestTime, params)
 	if err != nil {
-		logger("Error adding parts to request: "+err.Error(), logError)
+		logger("Error adding parts to request: "+err.Error(), logError, params.Channel)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -315,12 +318,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func getTextParts(text string) ([]string, error) {
-	logger("Getting text parts", logDebug)
 	// check if message starts with a tag
 	if !strings.HasPrefix(text, "[") {
 		if strings.Contains(text, "[e-") || strings.Contains(text, "[v-") {
 			// if it doesn't start with a tag but contains a tag, this is an error
-			logger("Text contains a tag but doesn't start with a tag: "+text, logError)
+			logger("Text contains a tag but doesn't start with a tag: "+text, logError, "Universal")
 			return nil, fmt.Errorf("If you use any tags, the text must start with a tag.")
 		}
 		return []string{text}, nil
@@ -340,7 +342,6 @@ func getTextParts(text string) ([]string, error) {
 }
 
 func getFormattedParts(parts []string) ([]Part, error) {
-	logger("Getting formatted parts", logDebug)
 	var result []Part
 
 	for _, part := range parts {
@@ -394,14 +395,14 @@ func sendAudio(request Request, audioData []byte) {
 			clientName := getClientName(fmt.Sprintf("%p", client))
 			err := client.WriteMessage(websocket.BinaryMessage, audioData)
 			if err != nil {
-				logger("Error sending audio data to "+requestName+": "+err.Error(), logError)
+				logger("Error sending audio data to "+requestName+": "+err.Error(), logError, request.Channel)
 				client.Close()
 				delete(clients, client)
 				if len(requests) > 0 {
 					clearChannelRequests(request.Channel)
 				}
 			}
-			logger("Audio data "+requestName+" sent to "+clientName+" on channel "+request.Channel, logInfo)
+			logger("Audio data "+requestName+" sent to "+clientName, logInfo, request.Channel)
 		}
 	}
 }
@@ -411,7 +412,7 @@ type AudioData struct {
 }
 
 func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
-	logger("Processing request", logInfo)
+	logger("Processing request", logInfo, params.Channel)
 	var audio []byte
 	var audioData []AudioData
 	var err error
@@ -420,7 +421,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 		if request.Type == "text" || request.Type == "voice" {
 			audio, err = generateAudio(request)
 			if err != nil {
-				logger("Error generating audio: "+err.Error(), logError)
+				logger("Error generating audio: "+err.Error(), logError, params.Channel)
 				bad = true
 				if len(requests) > 0 {
 					clearChannelRequests(params.Channel)
@@ -429,7 +430,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				return
 			}
 			if audio == nil || len(audio) == 0 {
-				logger("No audio data generated", logError)
+				logger("No audio data generated", logError, params.Channel)
 				bad = true
 				if len(requests) > 0 {
 					clearChannelRequests(params.Channel)
@@ -441,7 +442,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 			if mongoEnabled {
 				data, err := createData(request)
 				if err != nil {
-					logger("Error creating data: "+err.Error(), logError)
+					logger("Error creating data: "+err.Error(), logError, params.Channel)
 					bad = true
 					if len(requests) > 0 {
 						clearChannelRequests(params.Channel)
@@ -454,7 +455,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 		} else if request.Type == "effect" {
 			audio, found := getEffectSound(request.Effect)
 			if !found {
-				logger("Effect sound not found", logError)
+				logger("Effect sound not found", logError, params.Channel)
 				bad = true
 				if len(requests) > 0 {
 					clearChannelRequests(params.Channel)
@@ -477,7 +478,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 				select {
 				case <-replyVerifyTicker.C:
 					requestName := getAudioDataName(requests[i].Time)
-					logger("No reply received for "+requestName, logInfo)
+					logger("No reply received for "+requestName, logInfo, requests[i].Channel)
 					clearChannelRequests(requests[i].Channel)
 					http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
 					sendTextMessage(requests[i].Channel, "reload")
@@ -488,7 +489,7 @@ func processRequest(w http.ResponseWriter, _ *http.Request, params *URLParams) {
 			}
 		}
 	} else {
-		logger("Error processing request", logError)
+		logger("Error processing request", logError, params.Channel)
 		if len(requests) > 0 {
 			clearChannelRequests(params.Channel)
 		}

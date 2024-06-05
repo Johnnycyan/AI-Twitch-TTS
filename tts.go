@@ -58,13 +58,13 @@ func setupVoices() {
 	voicesEnv := os.Getenv("VOICES")
 	err := json.Unmarshal([]byte(voicesEnv), &voices)
 	if err != nil {
-		logger("Error unmarshalling voices.json: "+err.Error(), logError)
+		logger("Error unmarshalling voices.json: "+err.Error(), logError, "Universal")
 		return
 	}
 	if len(voices) > 0 {
 		defaultVoice = voices[0].Name
 		defaultVoiceID = voices[0].ID
-		logger("Default voice: "+defaultVoice, logDebug)
+		logger("Default voice: "+defaultVoice, logDebug, "Universal")
 	}
 }
 
@@ -72,7 +72,7 @@ func setupVoiceModels() {
 	voiceModelsEnv := os.Getenv("VOICE_MODELS")
 	err := json.Unmarshal([]byte(voiceModelsEnv), &voiceModels)
 	if err != nil {
-		logger("Error unmarshalling voice models: "+err.Error(), logError)
+		logger("Error unmarshalling voice models: "+err.Error(), logError, "Universal")
 		return
 	}
 }
@@ -81,7 +81,7 @@ func setupVoiceStyles() {
 	voiceStylesEnv := os.Getenv("VOICE_STYLES")
 	err := json.Unmarshal([]byte(voiceStylesEnv), &voiceStyles)
 	if err != nil {
-		logger("Error unmarshalling voice styles: "+err.Error(), logError)
+		logger("Error unmarshalling voice styles: "+err.Error(), logError, "Universal")
 		return
 	}
 }
@@ -101,25 +101,25 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 		if alertExists {
 			alertSoundBytes, err := io.ReadAll(alertSound)
 			if err != nil {
-				logger("Error reading alert sound: "+err.Error(), logError)
+				logger("Error reading alert sound: "+err.Error(), logError, request.Channel)
 			} else {
 				waitTime, err = getAudioLength(audioData)
 				if err != nil {
-					logger("Error getting alert length: "+err.Error(), logError)
+					logger("Error getting alert length: "+err.Error(), logError, request.Channel)
 					waitTime = 5
 				} else {
-					logger("Alert length of "+fmt.Sprintf("%d", waitTime), logDebug)
+					logger("Alert length of "+fmt.Sprintf("%d", waitTime), logDebug, request.Channel)
 				}
 				for client, clientChannel := range clients {
 					clientName := getClientName(fmt.Sprintf("%p", client))
 					if clientChannel == request.Channel {
 						err := client.WriteMessage(websocket.BinaryMessage, alertSoundBytes)
 						if err != nil {
-							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError)
+							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError, request.Channel)
 							client.Close()
 							delete(clients, client)
 						} else {
-							logger("Alert sound sent to "+clientName+" on channel "+request.Channel, logInfo)
+							logger("Alert sound sent to "+clientName, logInfo, request.Channel)
 						}
 					}
 				}
@@ -137,7 +137,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 		select {
 		case <-replyVerifyTicker.C:
 			requestName := getAudioDataName(request.Time)
-			logger("No reply received for "+requestName, logInfo)
+			logger("No reply received for "+requestName, logInfo, request.Channel)
 			clearChannelRequests(request.Channel)
 			http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
 			sendTextMessage(request.Channel, "reload")
@@ -201,43 +201,43 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 	}
 
 	if customVoice != "" {
-		logger("Voice found in message", logDebug)
+		logger("Voice found in message", logDebug, "Universal")
 	}
 
 	var selectedVoice string
 	// check if the custom message voice is valid
 	if !validVoice(customVoice) {
 		if customVoice != "" {
-			logger("Invalid custom message voice: "+customVoice, logDebug)
+			logger("Invalid custom message voice: "+customVoice, logDebug, "Universal")
 		}
 		// If the custom message voice is not valid then check if the fallback voice is valid
 		if !validVoice(fallbackVoice) {
-			logger("Invalid fallback voice: "+fallbackVoice+" so defaulting to "+defaultVoice, logInfo)
+			logger("Invalid fallback voice: "+fallbackVoice+" so defaulting to "+defaultVoice, logInfo, "Universal")
 			// If the fallback voice is not valid then default to the default voice
 			selectedVoice = defaultVoiceID
 		} else {
 			// If the fallback voice is valid then set the selected voice to the fallback voice
-			logger("Voice selected: "+fallbackVoice, logDebug)
+			logger("Voice selected: "+fallbackVoice, logDebug, "Universal")
 			var err error
 			selectedVoice, err = getVoiceID(fallbackVoice)
 			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError)
+				logger("Error getting voice ID: "+err.Error(), logError, "Universal")
 				return false, text
 			}
 		}
 	} else {
 		// If the custom message voice is valid then set the selected voice to the custom message voice
-		logger("Voice selected: "+customVoice, logDebug)
+		logger("Voice selected: "+customVoice, logDebug, "Universal")
 		var err error
 		selectedVoice, err = getVoiceID(customVoice)
 		if err != nil {
-			logger("Error getting voice ID: "+err.Error(), logError)
+			logger("Error getting voice ID: "+err.Error(), logError, "Universal")
 			return false, text
 		}
 	}
 
 	if selectedVoice == "" {
-		logger("Invalid voice so defaulting to "+defaultVoice, logInfo)
+		logger("Invalid voice so defaulting to "+defaultVoice, logInfo, "Universal")
 		selectedVoice = defaultVoiceID
 	}
 
@@ -249,37 +249,37 @@ func configureVoice(fallbackVoice string, text string) (bool, string) {
 func getVoiceModel(ID string) (string, error) {
 	voice, err := getVoiceName(ID)
 	if err != nil {
-		logger("Error getting voice name: "+err.Error(), logError)
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
 		return "", err
 	}
-	logger("Getting voice model for voice: "+voice, logDebug)
+	logger("Getting voice model for voice: "+voice, logDebug, "Universal")
 	for _, v := range voiceModels {
 		if strings.ToLower(v.Name) == strings.ToLower(voice) {
 			return v.Model, nil
 		}
 	}
-	logger("Voice model not found", logDebug)
+	logger("Voice model not found", logDebug, "Universal")
 	return "", fmt.Errorf("Voice model not found")
 }
 
 func getVoiceStyle(ID string) (float64, error) {
 	voice, err := getVoiceName(ID)
 	if err != nil {
-		logger("Error getting voice name: "+err.Error(), logError)
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
 		return 0, err
 	}
-	logger("Getting voice style for voice: "+voice, logDebug)
+	logger("Getting voice style for voice: "+voice, logDebug, "Universal")
 	for _, v := range voiceStyles {
 		if strings.ToLower(v.Name) == strings.ToLower(voice) {
 			style, err := strconv.ParseFloat(v.Style, 64)
 			if err != nil {
-				logger("Error parsing voice style: "+err.Error(), logError)
+				logger("Error parsing voice style: "+err.Error(), logError, "Universal")
 				return 0, err
 			}
 			return style, nil
 		}
 	}
-	logger("Voice style not found", logDebug)
+	logger("Voice style not found", logDebug, "Universal")
 	return 0, fmt.Errorf("Voice style not found")
 }
 
@@ -292,11 +292,11 @@ func generateAudio(request Request) ([]byte, error) {
 		verb = false
 	}
 
-	logger("Generating TTS audio for text: "+request.Text, logDebug)
+	logger("Generating TTS audio for text: "+request.Text, logDebug, request.Channel)
 
 	voiceModifierList, err := getVoiceModifiers(request.Voice.Voice)
 	if err != nil {
-		logger("No voice modifiers found", logDebug)
+		logger("No voice modifiers found", logDebug, request.Channel)
 	} else {
 		// split the voiceModifierList into a list of voice modifiers by splitting on the comma
 		voiceModifiers := strings.Split(voiceModifierList, ",")
@@ -326,11 +326,11 @@ func generateAudio(request Request) ([]byte, error) {
 		model = "eleven_multilingual_v2"
 	}
 
-	logger("Using model: "+model, logDebug)
+	logger("Using model: "+model, logDebug, request.Channel)
 
 	clientData, err := ttsClient.GetUserInfo(ctx)
 	if err != nil {
-		logger("Error getting user info: "+err.Error(), logError)
+		logger("Error getting user info: "+err.Error(), logError, request.Channel)
 		return nil, err
 	}
 
@@ -350,26 +350,26 @@ func generateAudio(request Request) ([]byte, error) {
 		style = request.Voice.Style
 	}
 
-	logger("Using style: "+fmt.Sprintf("%f", style), logDebug)
+	logger("Using style: "+fmt.Sprintf("%f", style), logDebug, request.Channel)
 
 	go func() {
 		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
 		if err != nil {
-			logger("Error generating TTS audio: "+err.Error(), logError)
+			logger("Error generating TTS audio: "+err.Error(), logError, request.Channel)
 		}
 		pipeWriter.Close()
 	}()
 
 	audioData, err := io.ReadAll(pipeReader)
 	if err != nil {
-		logger("Error reading TTS audio data: "+err.Error(), logError)
+		logger("Error reading TTS audio data: "+err.Error(), logError, request.Channel)
 		return nil, err
 	}
 
 	if verb {
 		verbAudio := reverb(audioData, request.Channel)
 		if verbAudio == nil {
-			logger("Error applying reverb to audio", logError)
+			logger("Error applying reverb to audio", logError, request.Channel)
 			return nil, fmt.Errorf("Error applying reverb to audio")
 		}
 		audioData = verbAudio
@@ -388,7 +388,7 @@ func getCharactersHandler(w http.ResponseWriter, r *http.Request) {
 
 	clientInfo, err := ttsClient.GetUserInfo(ctx)
 	if err != nil {
-		logger("Error getting user info: "+err.Error(), logError)
+		logger("Error getting user info: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -407,7 +407,7 @@ func getCharactersHandler(w http.ResponseWriter, r *http.Request) {
 
 	clientDataJSON, err := json.Marshal(clientData)
 	if err != nil {
-		logger("Error marshalling client data: "+err.Error(), logError)
+		logger("Error marshalling client data: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

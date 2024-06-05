@@ -51,7 +51,7 @@ func handleVoices(w http.ResponseWriter, r *http.Request) {
 	for voice := range voices {
 		voiceInfo, err := ttsClient.GetVoice(ctx, voices[voice].ID)
 		if err != nil {
-			logger("Error getting voice preview: "+err.Error(), logError)
+			logger("Error getting voice preview: "+err.Error(), logError, "Universal")
 			continue
 		}
 		previews = append(previews, VoicePreview{

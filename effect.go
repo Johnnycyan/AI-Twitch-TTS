@@ -24,7 +24,7 @@ func listEffects(w http.ResponseWriter, _ *http.Request) {
 	if _, err := os.Stat(effectFolder); err == nil {
 		files, err := os.ReadDir(effectFolder)
 		if err != nil {
-			logger("Error reading effects folder: "+err.Error(), logError)
+			logger("Error reading effects folder: "+err.Error(), logError, "Universal")
 			w.Write([]byte("Error reading effect folder: " + err.Error()))
 			return
 		} else {
@@ -91,13 +91,13 @@ func effectsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getEffectSound(effect string) ([]byte, bool) {
-	logger("Getting effect sound for: "+effect, logDebug)
+	logger("Getting effect sound for: "+effect, logDebug, "Universal")
 	var effectSounds []string
 	//check if effects folder exists and if so get all .mp3 files in it
 	if _, err := os.Stat(effectFolder); err == nil {
 		files, err := os.ReadDir(effectFolder)
 		if err != nil {
-			logger("Error reading effects folder: "+err.Error(), logError)
+			logger("Error reading effects folder: "+err.Error(), logError, "Universal")
 			return nil, false
 		} else {
 			for _, file := range files {
@@ -112,7 +112,7 @@ func getEffectSound(effect string) ([]byte, bool) {
 
 	// check if there are any effect sounds in the folder
 	if len(effectSounds) == 0 {
-		logger("No effect sounds found in effect folder: "+effectFolder, logDebug)
+		logger("No effect sounds found in effect folder: "+effectFolder, logDebug, "Universal")
 		return nil, false
 	}
 
@@ -125,18 +125,18 @@ func getEffectSound(effect string) ([]byte, bool) {
 		}
 	}
 	if effectSelected == "" {
-		logger("No effect sound found for: "+effect, logDebug)
+		logger("No effect sound found for: "+effect, logDebug, "Universal")
 		return nil, false
 	}
 	effectSound, err := os.Open(fmt.Sprintf("%s/%s", effectFolder, effectSelected))
 	if err != nil {
-		logger("Error opening effect sound: "+err.Error(), logError)
+		logger("Error opening effect sound: "+err.Error(), logError, "Universal")
 		return nil, false
 	}
 
 	effectSoundBytes, err := io.ReadAll(effectSound)
 	if err != nil {
-		logger("Error reading effect sound: "+err.Error(), logError)
+		logger("Error reading effect sound: "+err.Error(), logError, "Universal")
 		return nil, false
 	}
 

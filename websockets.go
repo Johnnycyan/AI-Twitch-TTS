@@ -44,7 +44,7 @@ func clearChannelRequests(channel string) {
 	defer func() {
 		if r := recover(); r != nil {
 			requests = nil
-			logger("Recovered from panic in clearChannelRequests: "+fmt.Sprintf("%v", r), logError)
+			logger("Recovered from panic in clearChannelRequests: "+fmt.Sprintf("%v", r), logError, channel)
 		}
 	}()
 	for i := len(requests) - 1; i >= 0; i-- {
@@ -59,32 +59,32 @@ func clearChannelRequests(channel string) {
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	channel := strings.ToLower(r.URL.Query().Get("channel"))
 	upgrader := websocket.Upgrader{}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		logger("Error upgrading to WebSocket: "+err.Error(), logError)
+		logger("Error upgrading to WebSocket: "+err.Error(), logError, channel)
 		return
 	}
-	channel := strings.ToLower(r.URL.Query().Get("channel"))
 	hash := r.URL.Query().Get("v")
 	currentHash, err := ComputeMD5("static/index.html")
 	if err != nil {
-		logger("Error computing hash for index.html: "+err.Error(), logError)
+		logger("Error computing hash for index.html: "+err.Error(), logError, channel)
 		return
 	}
 
 	clientName := getClientName(fmt.Sprintf("%p", conn))
 	if hash != currentHash {
-		logger(clientName+" on "+channel+" connected with outdated version: "+hash+" (current: "+currentHash+")", logInfo)
-		logger("Sending update message to "+clientName+" on "+channel+": "+currentHash, logInfo)
+		logger(clientName+" connected with outdated version: "+hash+" (current: "+currentHash+")", logInfo, channel)
+		logger("Sending update message to "+clientName+": "+currentHash, logInfo, channel)
 		err := conn.WriteMessage(websocket.TextMessage, []byte("update "+currentHash))
 		if err != nil {
-			logger("Error sending update message to client: "+err.Error(), logError)
+			logger("Error sending update message to client: "+err.Error(), logError, channel)
 		}
 		conn.Close()
 		return
 	}
-	logger("Client "+clientName+" connected to channel "+channel, logInfo)
+	logger("Client "+clientName+" connected", logInfo, channel)
 	clients[conn] = channel
 
 	// Read messages from the client
@@ -95,7 +95,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			for {
 				select {
 				case <-clientPingTicker.C:
-					logger("Ping not received, closing connection for client "+clientName+" on channel "+channel, logInfo)
+					logger("Ping not received, closing connection for client "+clientName, logInfo, channel)
 					clearChannelRequests(channel)
 					conn.Close()
 					delete(clients, conn)
@@ -113,9 +113,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			messageType, messageBytes, err := conn.ReadMessage()
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") {
-					logger("Client "+clientName+" disconnected from channel "+channel, logInfo)
+					logger("Client "+clientName+" disconnected", logInfo, channel)
 				} else {
-					logger("Error reading message from client "+clientName+" on channel "+channel+": "+err.Error(), logError)
+					logger("Error reading message from client "+clientName+": "+err.Error(), logError, channel)
 				}
 				conn.Close()
 				delete(clients, conn)
@@ -129,10 +129,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			if messageType == websocket.TextMessage {
 				message := string(messageBytes)
 				if message == "ping" {
-					logger("Received ping from "+clientName+" on channel "+channel, logFountain)
+					logger("Received ping from "+clientName, logFountain, channel)
 					clientPingTicker.Reset(60 * time.Second)
 				} else if message == "close" {
-					logger("Client "+clientName+" closed the connection on channel "+channel, logInfo)
+					logger("Client "+clientName+" closed the connection", logInfo, channel)
 					clearChannelRequests(channel)
 					conn.Close()
 					delete(clients, conn)
@@ -146,14 +146,14 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					// this is the timestamp of the audio that the client is confirming
 					timestamp := strings.Split(message, " ")[1]
 					requestName := getAudioDataName(timestamp)
-					logger("Client "+clientName+" confirmed playing audio for "+requestName+" on channel "+channel, logInfo)
+					logger("Client "+clientName+" confirmed playing audio for "+requestName, logInfo, channel)
 					// remove timestamp from playing map
 					delete(playing, timestamp)
 				} else {
-					logger("Unknown message from "+clientName+" on channel "+channel+": "+message, logDebug)
+					logger("Unknown message from "+clientName+": "+message, logDebug, channel)
 				}
 			} else if messageType == websocket.BinaryMessage {
-				logger("Received binary message from "+clientName+" on channel "+channel, logDebug)
+				logger("Received binary message from "+clientName, logDebug, channel)
 			}
 		}
 	}(clientName, channel, conn)
@@ -165,11 +165,11 @@ func sendTextMessage(channel string, message string) {
 			clientName := getClientName(fmt.Sprintf("%p", client))
 			err := client.WriteMessage(websocket.TextMessage, []byte(message))
 			if err != nil {
-				logger("Error sending text message to "+clientName+": "+err.Error(), logError)
+				logger("Error sending text message to "+clientName+": "+err.Error(), logError, channel)
 				client.Close()
 				delete(clients, client)
 			}
-			logger("Text message sent to "+clientName+" on channel "+channel, logInfo)
+			logger("Text message sent to "+clientName, logInfo, channel)
 		}
 	}
 }

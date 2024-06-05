@@ -45,7 +45,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	channel := r.URL.Query().Get("channel")
 	hash, err := ComputeMD5("static/index.html")
 	if err != nil {
-		logger("Error computing hash for index.html: "+err.Error(), logError)
+		logger("Error computing hash for index.html: "+err.Error(), logError, channel)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -56,7 +56,7 @@ func main() {
 	setupENV()
 	setupHandlers()
 
-	logger("Server listening on port: "+port, logInfo)
+	logger("Server listening on port: "+port, logInfo, "Universal")
 	http.ListenAndServe(":"+port, nil)
 }
 
@@ -77,7 +77,7 @@ func ComputeMD5(filePath string) (string, error) {
 func serveClient(w http.ResponseWriter, r *http.Request) {
 	htmlHash, err := ComputeMD5("static/index.html")
 	if err != nil {
-		logger("Error computing hash for index.html: "+err.Error(), logError)
+		logger("Error computing hash for index.html: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -103,7 +103,7 @@ func serveClient(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, err := template.ParseFiles("static/index.html")
 	if err != nil {
-		logger("Error parsing template: "+err.Error(), logError)
+		logger("Error parsing template: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +116,7 @@ func serveClient(w http.ResponseWriter, r *http.Request) {
 
 	err = tmpl.Execute(w, data)
 	if err != nil {
-		logger("Error executing template: "+err.Error(), logError)
+		logger("Error executing template: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

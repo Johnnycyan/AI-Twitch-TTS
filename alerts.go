@@ -18,7 +18,7 @@ func getAlertSound(channel string) (*os.File, bool) {
 	if _, err := os.Stat(channelAlertsFolder); err == nil {
 		files, err := os.ReadDir(channelAlertsFolder)
 		if err != nil {
-			logger("Error reading alert folder: "+err.Error(), logError)
+			logger("Error reading alert folder: "+err.Error(), logError, channel)
 			return nil, false
 		} else {
 			for _, file := range files {
@@ -33,16 +33,16 @@ func getAlertSound(channel string) (*os.File, bool) {
 
 	// check if there are any alert sounds in the folder
 	if len(alertSounds) == 0 {
-		logger("No alert sounds found in alert folder: "+channelAlertsFolder, logDebug)
+		logger("No alert sounds found in alert folder: "+channelAlertsFolder, logDebug, channel)
 		return nil, false
 	}
 
 	// get a random alert sound from the list of alert sounds
 	randomAlertSound := alertSounds[rand.Intn(len(alertSounds))]
-	logger("Random alert sound selected: "+randomAlertSound, logDebug)
+	logger("Random alert sound selected: "+randomAlertSound, logDebug, channel)
 	alertSound, err := os.Open(fmt.Sprintf("%s/%s", channelAlertsFolder, randomAlertSound))
 	if err != nil {
-		logger("Error opening alert sound: "+err.Error(), logError)
+		logger("Error opening alert sound: "+err.Error(), logError, channel)
 		return nil, false
 	}
 

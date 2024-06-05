@@ -67,7 +67,7 @@ func serveChart(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, err := template.ParseFiles("static/chart.html")
 	if err != nil {
-		logger("Error parsing template: "+err.Error(), logError)
+		logger("Error parsing template: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -80,7 +80,7 @@ func serveChart(w http.ResponseWriter, r *http.Request) {
 
 	err = tmpl.Execute(w, data)
 	if err != nil {
-		logger("Error executing template: "+err.Error(), logError)
+		logger("Error executing template: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -101,7 +101,7 @@ func createData(request Request) (*Data, error) {
 
 	clientData, err := client.GetUserInfo(ctx)
 	if err != nil {
-		logger("Error getting user info: "+err.Error(), logError)
+		logger("Error getting user info: "+err.Error(), logError, request.Channel)
 		return nil, err
 	}
 

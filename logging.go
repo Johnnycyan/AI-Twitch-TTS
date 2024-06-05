@@ -12,18 +12,18 @@ var (
 	logLevel    = "debug"
 )
 
-func logger(message string, level string) {
+func logger(message string, level string, channel string) {
 	switch level {
 	case "error":
-		message = "ERROR: " + message
+		message = "ERROR: [" + channel + "] " + message
 	case "info":
-		message = "INFO: " + message
+		message = "INFO: [" + channel + "] " + message
 	case "debug":
-		message = "DEBUG: " + message
+		message = "DEBUG: [" + channel + "] " + message
 	case "fountain":
-		message = "FOUNTAIN: " + message
+		message = "FOUNTAIN: [" + channel + "] " + message
 	default:
-		message = "UNKNOWN: " + message
+		message = "UNKNOWN: [" + channel + "] " + message
 	}
 
 	switch logLevel {

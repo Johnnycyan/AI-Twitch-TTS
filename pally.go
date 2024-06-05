@@ -30,7 +30,7 @@ func getPallyVoiceID(channel string) string {
 		if voice.Channel == channel {
 			pallyVoiceID, err := getVoiceID(voice.Voice)
 			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError)
+				logger("Error getting voice ID: "+err.Error(), logError, channel)
 				return defaultVoiceID
 			}
 			return pallyVoiceID
@@ -43,7 +43,7 @@ func setupPally() {
 	keys := os.Getenv("PALLY_KEYS")
 	err := json.Unmarshal([]byte(keys), &pallyKeys)
 	if err != nil {
-		logger("Error unmarshalling Pally keys: "+err.Error(), logError)
+		logger("Error unmarshalling Pally keys: "+err.Error(), logError, "Universal")
 		return
 	}
 	for _, key := range pallyKeys {
@@ -59,18 +59,18 @@ func setupPallyVoices() {
 	voices := os.Getenv("PALLY_VOICES")
 	err := json.Unmarshal([]byte(voices), &pallyVoices)
 	if err != nil {
-		logger("Error unmarshalling Pally voices: "+err.Error(), logError)
+		logger("Error unmarshalling Pally voices: "+err.Error(), logError, "Universal")
 		return
 	}
 }
 
 func connectToPallyWebsocket(channel string, pallyKey string) {
-	logger("Connecting to Pally WebSocket on channel "+channel, logInfo)
+	logger("Connecting to Pally WebSocket", logInfo, channel)
 	for {
 		if err := attemptConnectToPallyWebsocket(channel, pallyKey); err != nil {
 			continue
 		} else {
-			logger("Pally connection closed normally.", logInfo)
+			logger("Pally connection closed normally.", logInfo, channel)
 			return
 		}
 	}
@@ -105,7 +105,7 @@ type Page struct {
 }
 
 func handlePallyMessage(message []byte, channel string) {
-	logger("Received message from Pally", logDebug)
+	logger("Received message from Pally", logDebug, channel)
 
 	var checkRequest []Request
 
@@ -116,7 +116,7 @@ func handlePallyMessage(message []byte, channel string) {
 	}
 
 	if len(checkRequest) > 0 {
-		logger("Last audio is still playing on "+channel, logInfo)
+		logger("Last audio is still playing on "+channel, logInfo, channel)
 		time.Sleep(1 * time.Second)
 		go handlePallyMessage(message, channel)
 		return
@@ -129,24 +129,23 @@ func handlePallyMessage(message []byte, channel string) {
 	var campaignTipNotify CampaignTipNotify
 	err := json.Unmarshal(message, &campaignTipNotify)
 	if err != nil {
-		logger("Error unmarshalling message: "+err.Error(), logError)
+		logger("Error unmarshalling message: "+err.Error(), logError, channel)
 	}
 	notifyType := campaignTipNotify.Type
 	if notifyType != "campaigntip.notify" {
-		logger("Not a campaign tip notification", logDebug)
+		logger("Not a campaign tip notification", logDebug, channel)
 		return
 	}
 	username := campaignTipNotify.Payload.CampaignTip.DisplayName
 	if username == "" {
-		logger(fmt.Sprintf("%v", campaignTipNotify), logDebug)
-		logger("No username found in message so assuming it's an anonymous tip", logInfo)
+		logger("No username found in message so assuming it's an anonymous tip", logInfo, channel)
 		username = "Anonymous"
 	}
 
 	// Check if there is a connected client for the channel
 	for {
 		if time.Now().Sub(time_of_message) > 30*time.Second {
-			logger("No connected client for channel", logInfo)
+			logger("No connected client", logInfo, channel)
 			found = false
 			return
 		}
@@ -191,11 +190,11 @@ func handlePallyMessage(message []byte, channel string) {
 	}
 	ttsMessage = convertNumberToWords(ttsMessage)
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
-	logger(ttsMessage, logInfo)
+	logger(ttsMessage, logInfo, channel)
 	voice := getPallyVoiceID(channel)
 	style, err := getVoiceStyle(voice)
 	if err != nil {
-		logger("Error getting voice style: "+err.Error(), logError)
+		logger("Error getting voice style: "+err.Error(), logError, channel)
 		return
 	}
 	request := Request{
@@ -218,7 +217,7 @@ func handlePallyMessage(message []byte, channel string) {
 		request.Channel = request.Channel + "-pally"
 		data, err := createData(request)
 		if err != nil {
-			logger("Error creating data: "+err.Error(), logError)
+			logger("Error creating data: "+err.Error(), logError, channel)
 			return
 		}
 		addData(data)
@@ -232,7 +231,7 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 	// Create a new WebSocket connection
 	conn, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		logger("Error connecting to Pally WebSocket on channel "+channel+": "+err.Error(), logError)
+		logger("Error connecting to Pally WebSocket: "+err.Error(), logError, channel)
 		return err
 	}
 	defer conn.Close()
@@ -253,13 +252,13 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 	go func() {
 		for {
 			time.Sleep(60 * time.Second)
-			logger("Sending ping message to Pally on channel "+channel, logFountain)
+			logger("Sending ping message to Pally", logFountain, channel)
 			err = conn.WriteMessage(websocket.TextMessage, []byte(`ping`))
 			if err != nil {
 				if strings.Contains(err.Error(), "use of closed network connection") || strings.Contains(err.Error(), "close sent") {
 					return
 				} else {
-					logger("Error sending ping message to Pally on channel "+channel+": "+err.Error(), logError)
+					logger("Error sending ping message to Pally: "+err.Error(), logError, channel)
 					return
 				}
 			}
@@ -273,17 +272,17 @@ func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
 		if err != nil {
 			// check if it's just an EOF 1006 error
 			if websocket.IsCloseError(err, websocket.CloseAbnormalClosure) || websocket.IsCloseError(err, websocket.CloseGoingAway) {
-				logger("Pally connection closed normally so reconnecting on channel "+channel, logInfo)
+				logger("Pally connection closed, reconnecting", logInfo, channel)
 				return err
 			} else {
-				logger("Error reading message from Pally on channel "+channel+": "+err.Error(), logError)
+				logger("Error reading message from Pally: "+err.Error(), logError, channel)
 				return err
 			}
 		}
 
 		// check for pong messages
 		if string(message) == "pong" {
-			logger("Received pong message from Pally on channel "+channel, logFountain)
+			logger("Received pong message from Pally", logFountain, channel)
 			continue
 		}
 
