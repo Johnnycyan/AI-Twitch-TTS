@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:latest AS build
+FROM golang:alpine AS build
 
 # Install UPX and other dependencies
 # RUN apk add --no-cache upx
