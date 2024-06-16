@@ -36,7 +36,7 @@ func getVoiceModifiers(ID string) (string, error) {
 	}
 	logger("Getting voice modifier for voice: "+voice, logDebug, "Universal")
 	for _, v := range voiceModifiers {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+		if strings.EqualFold(v.Name, voice) {
 			modifier := v.Modifier
 			return modifier, nil
 		}

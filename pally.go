@@ -144,7 +144,7 @@ func handlePallyMessage(message []byte, channel string) {
 
 	// Check if there is a connected client for the channel
 	for {
-		if time.Now().Sub(time_of_message) > 30*time.Second {
+		if time.Since(time_of_message) > 30*time.Second {
 			logger("No connected client", logInfo, channel)
 			found = false
 			return

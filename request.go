@@ -276,7 +276,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	if found == false {
+	if !found {
 		logger("No connected client", logInfo, params.Channel)
 		http.Error(w, "No connected client for channel", http.StatusNotFound)
 		if len(requests) > 0 {

@@ -157,7 +157,7 @@ func validVoice(voice string) bool {
 		return false
 	}
 	for _, v := range voices {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+		if strings.EqualFold(v.Name, voice) {
 			return true
 		}
 	}
@@ -166,7 +166,7 @@ func validVoice(voice string) bool {
 
 func getVoiceID(voice string) (string, error) {
 	for _, v := range voices {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+		if strings.EqualFold(v.Name, voice) {
 			return v.ID, nil
 		}
 	}

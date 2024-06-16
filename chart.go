@@ -59,8 +59,7 @@ func setupDB() {
 }
 
 func serveChart(w http.ResponseWriter, r *http.Request) {
-	var data interface{}
-	data = struct {
+	data := struct {
 		ServerURL string
 	}{
 		ServerURL: serverURL,
