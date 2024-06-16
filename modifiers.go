@@ -159,3 +159,29 @@ func getAudioLength(data []byte) (int, error) {
 
 	return int(rounded), nil
 }
+
+func getAudioLengthFile(filename string) (int, error) {
+	logger("Getting audio length", logDebug, "Universal")
+
+	cmd := exec.Command("ffprobe", "-i", filename, "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0")
+	output, err := cmd.Output()
+	if err != nil {
+		logger("Failed to get audio length", logError, "Universal")
+		return 0, err
+	}
+
+	length := string(output)
+	length = strings.TrimSuffix(length, "\n")
+	length = strings.TrimSuffix(length, "\r")
+
+	//round up to the nearest second
+	float, err := strconv.ParseFloat(length, 64)
+	if err != nil {
+		logger("Failed to convert audio length to float", logError, "Universal")
+		return 0, err
+	}
+
+	rounded := math.Ceil(float)
+
+	return int(rounded), nil
+}

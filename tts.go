@@ -105,7 +105,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 			if err != nil {
 				logger("Error reading alert sound: "+err.Error(), logError, request.Channel)
 			} else {
-				waitTime, err = getAudioLength(audioData)
+				waitTime, err = getAudioLengthFile(alertSound.Name())
 				if err != nil {
 					logger("Error getting alert length: "+err.Error(), logError, request.Channel)
 					waitTime = 5
