@@ -87,6 +87,7 @@ func setupVoiceStyles() {
 }
 
 func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, alert bool) {
+	logger("Handling Pally TTS Audio", logInfo, request.Channel)
 	audioData, err := generateAudio(request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -96,6 +97,7 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 	var waitTime int
 
 	if alert {
+		logger("Getting alert sounds", logInfo, request.Channel)
 		alertSound, alertExists := getAlertSound(request.Channel)
 
 		if alertExists {
@@ -254,7 +256,7 @@ func getVoiceModel(ID string) (string, error) {
 	}
 	logger("Getting voice model for voice: "+voice, logDebug, "Universal")
 	for _, v := range voiceModels {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+		if strings.EqualFold(v.Name, voice) {
 			return v.Model, nil
 		}
 	}
@@ -270,7 +272,7 @@ func getVoiceStyle(ID string) (float64, error) {
 	}
 	logger("Getting voice style for voice: "+voice, logDebug, "Universal")
 	for _, v := range voiceStyles {
-		if strings.ToLower(v.Name) == strings.ToLower(voice) {
+		if strings.EqualFold(v.Name, voice) {
 			style, err := strconv.ParseFloat(v.Style, 64)
 			if err != nil {
 				logger("Error parsing voice style: "+err.Error(), logError, "Universal")
