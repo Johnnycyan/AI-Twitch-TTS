@@ -194,7 +194,7 @@ func handlePallyMessage(message []byte, channel string) {
 	voice := getPallyVoiceID(channel)
 	style, err := getVoiceStyle(voice)
 	if err != nil {
-		logger("Error getting voice style: "+err.Error(), logError, channel)
+		style = 0.00
 		return
 	}
 	request := Request{
