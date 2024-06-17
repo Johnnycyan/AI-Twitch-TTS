@@ -119,7 +119,9 @@ func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, ale
 						if err != nil {
 							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError, request.Channel)
 							client.Close()
+							connMutex.Lock()
 							delete(clients, client)
+							connMutex.Unlock()
 						} else {
 							logger("Alert sound sent to "+clientName, logInfo, request.Channel)
 						}

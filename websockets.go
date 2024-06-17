@@ -15,6 +15,7 @@ var (
 	clients       = make(map[*websocket.Conn]string)
 	addrToNameMap = make(map[string]string)
 	mapMutex      = sync.Mutex{}
+	connMutex     = sync.Mutex{}
 	playing       = make(map[string]bool)
 )
 
@@ -85,7 +86,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	logger("Client "+clientName+" connected", logInfo, channel)
+	connMutex.Lock()
 	clients[conn] = channel
+	connMutex.Unlock()
 
 	// Read messages from the client
 	go func(clientName string, channel string, conn *websocket.Conn) {
@@ -98,7 +101,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					logger("Ping not received, closing connection for client "+clientName, logInfo, channel)
 					clearChannelRequests(channel)
 					conn.Close()
+					connMutex.Lock()
 					delete(clients, conn)
+					connMutex.Unlock()
 					//remove clientname from map
 					mapMutex.Lock()
 					delete(addrToNameMap, fmt.Sprintf("%p", conn))
@@ -118,7 +123,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					logger("Error reading message from client "+clientName+": "+err.Error(), logError, channel)
 				}
 				conn.Close()
+				connMutex.Lock()
 				delete(clients, conn)
+				connMutex.Unlock()
 				//remove clientname from map
 				mapMutex.Lock()
 				delete(addrToNameMap, fmt.Sprintf("%p", conn))
@@ -135,7 +142,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 					logger("Client "+clientName+" closed the connection", logInfo, channel)
 					clearChannelRequests(channel)
 					conn.Close()
+					connMutex.Lock()
 					delete(clients, conn)
+					connMutex.Unlock()
 					//remove clientname from map
 					mapMutex.Lock()
 					delete(addrToNameMap, fmt.Sprintf("%p", conn))
@@ -167,7 +176,9 @@ func sendTextMessage(channel string, message string) {
 			if err != nil {
 				logger("Error sending text message to "+clientName+": "+err.Error(), logError, channel)
 				client.Close()
+				connMutex.Lock()
 				delete(clients, client)
+				connMutex.Unlock()
 			}
 			logger("Text message sent to "+clientName, logInfo, channel)
 		}
