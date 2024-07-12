@@ -188,7 +188,7 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
-	ttsMessage = convertNumberToWords(ttsMessage)
+	// ttsMessage = convertNumberToWords(ttsMessage)
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo, channel)
 	voice := getPallyVoiceID(channel)
