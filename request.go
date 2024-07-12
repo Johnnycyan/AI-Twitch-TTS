@@ -105,6 +105,7 @@ func convertNumberToWords(text string) (string, error) {
 			if r := recover(); r != nil {
 				loopErr = fmt.Errorf("Error converting number to words: %v", r)
 				logger(loopErr.Error(), logError, "Universal")
+				return
 			}
 		}()
 		// convert the number to words
