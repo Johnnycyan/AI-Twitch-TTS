@@ -188,10 +188,10 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
-	ttsMessage, err = convertNumberToWords(ttsMessage)
-	if err != nil {
-		logger("Error converting number to words: "+err.Error(), logError, channel)
-	}
+	// ttsMessage, err = convertNumberToWords(ttsMessage)
+	// if err != nil {
+	// 	logger("Error converting number to words: "+err.Error(), logError, channel)
+	// }
 	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
 	logger(ttsMessage, logInfo, channel)
 	voice := getPallyVoiceID(channel)

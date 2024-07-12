@@ -197,11 +197,12 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("Invalid fallback voice")
 			}
-			fixedText, err := convertNumberToWords(part.Text)
-			if err != nil {
-				logger("Error converting number to words: "+err.Error(), logError, params.Channel)
-				fixedText = part.Text
-			}
+			// fixedText, err := convertNumberToWords(part.Text)
+			// if err != nil {
+			// 	logger("Error converting number to words: "+err.Error(), logError, params.Channel)
+			// 	fixedText = part.Text
+			// }
+			fixedText := part.Text
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
@@ -225,11 +226,12 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("You used an invalid voice tag: " + part.Voice)
 			}
-			fixedText, err := convertNumberToWords(part.Text)
-			if err != nil {
-				logger("Error converting number to words: "+err.Error(), logError, params.Channel)
-				fixedText = part.Text
-			}
+			// fixedText, err := convertNumberToWords(part.Text)
+			// if err != nil {
+			// 	logger("Error converting number to words: "+err.Error(), logError, params.Channel)
+			// 	fixedText = part.Text
+			// }
+			fixedText := part.Text
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
