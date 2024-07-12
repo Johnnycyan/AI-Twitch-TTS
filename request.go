@@ -71,7 +71,7 @@ func getAudioDataName(audioData string) string {
 	return name
 }
 
-func convertNumberToWords(text string) string {
+func convertNumberToWords(text string) (string, error) {
 	logger("Converting numbers to words", logDebug, "Universal")
 	// find numbers in the string, convert them to words and replace them in the string. I want to find them even if it's for example xdd34624 so not only numbers that are separated by spaces
 	// I'm using a regex to find the numbers and then convert them to words
@@ -82,7 +82,7 @@ func convertNumberToWords(text string) string {
 
 	if numbers == nil {
 		logger("No numbers found in the text", logDebug, "Universal")
-		return text
+		return text, nil
 	}
 	logger("Numbers found: "+fmt.Sprintf("%+v", numbers), logDebug, "Universal")
 
@@ -90,7 +90,15 @@ func convertNumberToWords(text string) string {
 	text = re.ReplaceAllString(text, " $0") // example: 123, 123.48, xdd33444 -> 123, 123.48, xdd 33444
 
 	// convert the numbers to words
+	var loopErr error
+	originalText := text
 	for _, number := range numbers {
+		defer func() {
+			if r := recover(); r != nil {
+				loopErr = fmt.Errorf("Error converting number to words: %v", r)
+				logger(loopErr.Error(), logError, "Universal")
+			}
+		}()
 		// convert the number to words
 		words := convert.NumberToWords(number, "en")
 
@@ -98,11 +106,15 @@ func convertNumberToWords(text string) string {
 		text = strings.Replace(text, number, words, -1)
 	}
 
+	if loopErr != nil {
+		return originalText, loopErr
+	}
+
 	text = strings.TrimSpace(text)
 	text = strings.Replace(text, "   ", " ", -1)
 	text = strings.Replace(text, "  ", " ", -1)
 
-	return text
+	return text, nil
 }
 
 func getURLParams(r *http.Request) *URLParams {
@@ -176,7 +188,11 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("Invalid fallback voice")
 			}
-			fixedText := convertNumberToWords(part.Text)
+			fixedText, err := convertNumberToWords(part.Text)
+			if err != nil {
+				logger("Error converting number to words: "+err.Error(), logError, params.Channel)
+				fixedText = part.Text
+			}
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
@@ -200,7 +216,11 @@ func addPartsToRequest(parts []Part, requestTime string, params *URLParams) erro
 				}
 				return fmt.Errorf("You used an invalid voice tag: " + part.Voice)
 			}
-			fixedText := convertNumberToWords(part.Text)
+			fixedText, err := convertNumberToWords(part.Text)
+			if err != nil {
+				logger("Error converting number to words: "+err.Error(), logError, params.Channel)
+				fixedText = part.Text
+			}
 			requests = append(requests, Request{
 				Index:   len(requests) + 1,
 				Type:    part.Type,
