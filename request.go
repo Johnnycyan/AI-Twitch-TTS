@@ -80,6 +80,14 @@ func convertNumberToWords(text string) (string, error) {
 	re := regexp.MustCompile(`\d+(\.\d+)?`) // example: 123, 123.48, xdd33444 4234xdd -> 123, 123.48, 33444 4234
 	numbers := re.FindAllString(text, -1)
 
+	for _, num := range numbers {
+		for strings.HasPrefix(num, "0") {
+			// remove the 0 from the number
+			num = num[1:]
+			logger("Removing 0 from the number", logDebug, "Universal")
+		}
+	}
+
 	if numbers == nil {
 		logger("No numbers found in the text", logDebug, "Universal")
 		return text, nil
