@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - '**.go'
       - '**.sum'
@@ -39,6 +40,10 @@ jobs:
         uses: docker/metadata-action@60a0d343a0d8a18aedee9d34e62251f752153bdb
         with:
           images: johnnycyan/ai-twitch-tts
+          tags: |
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=tag
 
       - name: Build and push Docker image
         id: push
@@ -51,18 +56,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Set up Go
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/setup-go@v5
         with:
           go-version: 'stable'
 
       - name: Build for Windows
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ${{ github.event.repository.name }}.exe .
 
       - name: Zip Windows build
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: vimtor/action-zip@v1.2
         with:
           files: ${{ github.event.repository.name }}.exe static/
@@ -70,12 +75,12 @@ jobs:
           dest: ${{ github.event.repository.name }}_windows.zip
 
       - name: Build for Linux
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ${{ github.event.repository.name }} .
 
       - name: Zip Linux build
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: vimtor/action-zip@v1.2
         with:
           files: ${{ github.event.repository.name }} static/
@@ -83,11 +88,11 @@ jobs:
           dest: ${{ github.event.repository.name }}_linux.zip
 
       - name: Generate version number
-        if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && ((github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch')
         run: echo "RELEASE_VERSION=$(date '+%Y.%m.%d-%H.%M.%S')" >> $GITHUB_ENV
 
       - name: Create Release
-        if: (github.event_name == 'push') || github.event_name == 'workflow_dispatch'
+        if: github.ref != 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref == 'refs/heads/main' && env.RELEASE_VERSION || github.ref_name }}
@@ -98,3 +103,4 @@ jobs:
             ${{ github.event.repository.name }}_windows.zip
             ${{ github.event.repository.name }}_linux.zip
           token: ${{ secrets.GITHUB_TOKEN }}
+

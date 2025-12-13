@@ -24,6 +24,5 @@ require (
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/sandisuryadi36/number-to-words v1.0.2
 	go.mongodb.org/mongo-driver v1.16.0
 )

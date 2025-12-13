@@ -114,52 +114,6 @@ func reverb(data []byte, channel string) []byte {
 	return reverbData
 }
 
-func convertAudio(data []byte, channel string) []byte {
-	logger("Converting audio", logDebug, channel)
-	saveAudioDataToFile("convert-"+channel+".mp3", data)
-
-	cmd := exec.Command("ffmpeg", "-i", "convert-"+channel+".mp3", "-ar", "44100", "-ac", "2", "-b:a", "320k", "convertout-"+channel+".mp3")
-	err := cmd.Run()
-	if err != nil {
-		logger("Failed to convert audio", logError, channel)
-	}
-
-	newData := loadAudioDataFromFile("convertout-" + channel + ".mp3")
-
-	deleteAudioFile("convert-" + channel + ".mp3")
-	deleteAudioFile("convertout-" + channel + ".mp3")
-
-	return newData
-}
-
-func getAudioLength(data []byte) (int, error) {
-	logger("Getting audio length", logDebug, "Universal")
-	saveAudioDataToFile("length.mp3", data)
-
-	cmd := exec.Command("ffprobe", "-i", "length.mp3", "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0")
-	output, err := cmd.Output()
-	if err != nil {
-		logger("Failed to get audio length", logError, "Universal")
-		return 0, err
-	}
-
-	length := string(output)
-	length = strings.TrimSuffix(length, "\n")
-
-	deleteAudioFile("length.mp3")
-
-	//round up to the nearest second
-	float, err := strconv.ParseFloat(length, 64)
-	if err != nil {
-		logger("Failed to convert audio length to float", logError, "Universal")
-		return 0, err
-	}
-
-	rounded := math.Ceil(float) + 1
-
-	return int(rounded), nil
-}
-
 func getAudioLengthFile(filename string) (int, error) {
 	logger("Getting audio length", logDebug, "Universal")
 
@@ -185,3 +139,25 @@ func getAudioLengthFile(filename string) (int, error) {
 
 	return int(rounded), nil
 }
+
+// ModifierFunc type for audio modifier functions
+type ModifierFunc func(data []byte, channel string) []byte
+
+// modifierFuncs maps modifier names to their functions
+var modifierFuncs = map[string]ModifierFunc{
+	"reverb": reverb,
+	// Add more modifiers here
+}
+
+// applyModifiers applies all modifiers to audio data
+func applyModifiers(data []byte, modifiers []string, channel string) []byte {
+	result := data
+	for _, mod := range modifiers {
+		if fn, ok := modifierFuncs[strings.ToLower(mod)]; ok {
+			logger("Applying modifier: "+mod, logDebug, channel)
+			result = fn(result, channel)
+		}
+	}
+	return result
+}
+

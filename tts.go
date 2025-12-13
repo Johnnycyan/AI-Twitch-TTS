@@ -9,18 +9,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Johnnycyan/elevenlabs/client"
 	"github.com/Johnnycyan/elevenlabs/client/types"
-	"github.com/gorilla/websocket"
 )
 
 var (
 	voices         []Voice
 	voiceModels    []VoiceModel
 	voiceStyles    []VoiceStyle
-	voice          string
 	defaultVoice   string
 	defaultVoiceID string
 	elevenKey      string
@@ -86,74 +83,6 @@ func setupVoiceStyles() {
 	}
 }
 
-func handleTTSAudio(w http.ResponseWriter, _ *http.Request, request Request, alert bool) {
-	logger("Handling Pally TTS Audio", logInfo, request.Channel)
-	audioData, err := generateAudio(request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	var waitTime int
-
-	if alert {
-		logger("Getting alert sounds", logInfo, request.Channel)
-		alertSound, alertExists := getAlertSound(request.Channel)
-
-		if alertExists {
-			alertSoundBytes, err := io.ReadAll(alertSound)
-			if err != nil {
-				logger("Error reading alert sound: "+err.Error(), logError, request.Channel)
-			} else {
-				waitTime, err = getAudioLengthFile(alertSound.Name())
-				if err != nil {
-					logger("Error getting alert length: "+err.Error(), logError, request.Channel)
-					waitTime = 5
-				} else {
-					logger("Alert length of "+fmt.Sprintf("%d", waitTime), logDebug, request.Channel)
-				}
-				for client, clientChannel := range clients {
-					clientName := getClientName(fmt.Sprintf("%p", client))
-					if clientChannel == request.Channel {
-						err := client.WriteMessage(websocket.BinaryMessage, alertSoundBytes)
-						if err != nil {
-							logger("Error sending alert sound to "+clientName+": "+err.Error(), logError, request.Channel)
-							client.Close()
-							connMutex.Lock()
-							delete(clients, client)
-							connMutex.Unlock()
-						} else {
-							logger("Alert sound sent to "+clientName, logInfo, request.Channel)
-						}
-					}
-				}
-				time.Sleep(time.Duration(waitTime) * time.Second)
-			}
-		}
-	}
-
-	sendAudio(request, audioData)
-
-	replyVerifyTicker := time.NewTicker(120 * time.Second)
-
-	playing[request.Time] = true
-	for playing[request.Time] {
-		select {
-		case <-replyVerifyTicker.C:
-			requestName := getAudioDataName(request.Time)
-			logger("No reply received for "+requestName, logInfo, request.Channel)
-			clearChannelRequests(request.Channel)
-			http.Error(w, "No reply received for "+requestName, http.StatusRequestTimeout)
-			sendTextMessage(request.Channel, "reload")
-			return
-		default:
-			time.Sleep(50 * time.Millisecond)
-		}
-	}
-
-	clearChannelRequests(request.Channel)
-}
-
 func validVoice(voice string) bool {
 	if voice == "" {
 		return false
@@ -182,72 +111,6 @@ func getVoiceName(ID string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("Voice not found")
-}
-
-func configureVoice(fallbackVoice string, text string) (bool, string) {
-	// set the fallback voice to the default voice if no fallback voice is provided
-	if fallbackVoice == "" {
-		fallbackVoice = defaultVoice
-	}
-
-	// check if the text starts with a voice name in brackets
-	var customVoice string
-	if strings.HasPrefix(text, "[") {
-		// find the voice name in between the brackets and then remove it from the text
-		voiceStart := strings.Index(text, "[")
-		voiceEnd := strings.Index(text, "]")
-		if voiceStart != -1 && voiceEnd != -1 {
-			customVoice = strings.ToLower(text[voiceStart+1 : voiceEnd])
-			text = strings.TrimSpace(text[voiceEnd+1:])
-		}
-	} else {
-		customVoice = ""
-	}
-
-	if customVoice != "" {
-		logger("Voice found in message", logDebug, "Universal")
-	}
-
-	var selectedVoice string
-	// check if the custom message voice is valid
-	if !validVoice(customVoice) {
-		if customVoice != "" {
-			logger("Invalid custom message voice: "+customVoice, logDebug, "Universal")
-		}
-		// If the custom message voice is not valid then check if the fallback voice is valid
-		if !validVoice(fallbackVoice) {
-			logger("Invalid fallback voice: "+fallbackVoice+" so defaulting to "+defaultVoice, logInfo, "Universal")
-			// If the fallback voice is not valid then default to the default voice
-			selectedVoice = defaultVoiceID
-		} else {
-			// If the fallback voice is valid then set the selected voice to the fallback voice
-			logger("Voice selected: "+fallbackVoice, logDebug, "Universal")
-			var err error
-			selectedVoice, err = getVoiceID(fallbackVoice)
-			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError, "Universal")
-				return false, text
-			}
-		}
-	} else {
-		// If the custom message voice is valid then set the selected voice to the custom message voice
-		logger("Voice selected: "+customVoice, logDebug, "Universal")
-		var err error
-		selectedVoice, err = getVoiceID(customVoice)
-		if err != nil {
-			logger("Error getting voice ID: "+err.Error(), logError, "Universal")
-			return false, text
-		}
-	}
-
-	if selectedVoice == "" {
-		logger("Invalid voice so defaulting to "+defaultVoice, logInfo, "Universal")
-		selectedVoice = defaultVoiceID
-	}
-
-	voice = selectedVoice
-
-	return true, text
 }
 
 func getVoiceModel(ID string) (string, error) {

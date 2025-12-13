@@ -25,20 +25,6 @@ type PallyVoice struct {
 	Voice   string `json:"voice"`
 }
 
-func getPallyVoiceID(channel string) string {
-	for _, voice := range pallyVoices {
-		if voice.Channel == channel {
-			pallyVoiceID, err := getVoiceID(voice.Voice)
-			if err != nil {
-				logger("Error getting voice ID: "+err.Error(), logError, channel)
-				return defaultVoiceID
-			}
-			return pallyVoiceID
-		}
-	}
-	return defaultVoiceID
-}
-
 func setupPally() {
 	keys := os.Getenv("PALLY_KEYS")
 	err := json.Unmarshal([]byte(keys), &pallyKeys)
@@ -188,42 +174,51 @@ func handlePallyMessage(message []byte, channel string) {
 	} else {
 		ttsMessage = fmt.Sprintf("%s just tipped %s to the mods! %s", username, amountFormatted, ttsMessage)
 	}
-	// ttsMessage, err = convertNumberToWords(ttsMessage)
-	// if err != nil {
-	// 	logger("Error converting number to words: "+err.Error(), logError, channel)
-	// }
-	requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
+
 	logger(ttsMessage, logInfo, channel)
-	voice := getPallyVoiceID(channel)
-	style, err := getVoiceStyle(voice)
-	if err != nil {
-		style = 0.00
-	}
-	request := Request{
-		Channel: channel,
-		Text:    ttsMessage,
-		Time:    requestTime,
-		Voice: TTSSettings{
-			Voice:           voice,
-			Stability:       0.40,
-			SimilarityBoost: 1.00,
-			Style:           style,
-		},
-	}
 
-	// Add the request to the queue
-	requests = append(requests, request)
-	go handleTTSAudio(nil, nil, request, true)
-
-	if mongoEnabled {
-		request.Channel = request.Channel + "-pally"
-		data, err := createData(request)
-		if err != nil {
-			logger("Error creating data: "+err.Error(), logError, channel)
-			return
+	// Get the default voice for this Pally channel
+	pallyVoice := ""
+	for _, voice := range pallyVoices {
+		if voice.Channel == channel {
+			pallyVoice = voice.Voice
+			break
 		}
-		addData(data)
 	}
+
+	// Use unified message processor - now supports voice tags, modifiers, and effects
+	msg := Message{
+		Channel:         channel,
+		Text:            ttsMessage,
+		DefaultVoice:    pallyVoice,
+		Stability:       0.40,
+		SimilarityBoost: 1.00,
+		Style:           0.00,
+		PlayAlert:       true,
+	}
+
+	go func() {
+		err := ProcessAndPlay(msg)
+		if err != nil {
+			logger("Error processing Pally message: "+err.Error(), logError, channel)
+		}
+
+		// Log to MongoDB if enabled
+		if mongoEnabled {
+			requestTime := fmt.Sprintf("%d", time.Now().UnixNano())
+			request := Request{
+				Channel: channel + "-pally",
+				Text:    ttsMessage,
+				Time:    requestTime,
+			}
+			data, err := createData(request)
+			if err != nil {
+				logger("Error creating data: "+err.Error(), logError, channel)
+				return
+			}
+			addData(data)
+		}
+	}()
 }
 
 func attemptConnectToPallyWebsocket(channel string, pallyKey string) error {
