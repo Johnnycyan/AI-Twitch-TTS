@@ -180,17 +180,17 @@ func generateAudio(request Request) ([]byte, error) {
 	var model string
 	voiceModel, err := getVoiceModel(request.Voice.Voice)
 	if err != nil {
-		model = "eleven_multilingual_v2"
+		model = "eleven_v3"
 	}
 
 	if voiceModel != "" {
 		if voiceModel == "turbo" {
 			model = "eleven_turbo_v2"
 		} else {
-			model = "eleven_multilingual_v2"
+			model = "eleven_v3"
 		}
 	} else {
-		model = "eleven_multilingual_v2"
+		model = "eleven_v3"
 	}
 
 	logger("Using model: "+model, logDebug, request.Channel)
