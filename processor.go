@@ -284,7 +284,10 @@ func ProcessAndPlay(msg Message) error {
 		playAlertSound(msg.Channel)
 	}
 
-	// Generate and play each segment
+	// PHASE 1: Pre-generate all audio segments
+	logger("Pre-generating all audio segments", logDebug, msg.Channel)
+	var audioSegments [][]byte
+
 	for _, segment := range segments {
 		var audioData []byte
 
@@ -293,7 +296,8 @@ func ProcessAndPlay(msg Message) error {
 			effectAudio, found := getEffectSound(segment.Effect)
 			if !found {
 				logger("Effect sound not found: "+segment.Effect, logError, msg.Channel)
-				continue
+				clearChannelRequests(msg.Channel)
+				return fmt.Errorf("effect sound not found: %s", segment.Effect)
 			}
 			audioData = effectAudio
 		} else if segment.Text != "" {
@@ -340,7 +344,13 @@ func ProcessAndPlay(msg Message) error {
 			continue
 		}
 
-		// Send the audio
+		audioSegments = append(audioSegments, audioData)
+	}
+
+	logger(fmt.Sprintf("All %d audio segments generated, now sending", len(audioSegments)), logDebug, msg.Channel)
+
+	// PHASE 2: Send all pre-generated audio segments
+	for _, audioData := range audioSegments {
 		sendTextMessage(msg.Channel, "start "+requestTime)
 		time.Sleep(50 * time.Millisecond)
 
