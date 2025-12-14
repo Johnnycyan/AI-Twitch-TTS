@@ -54,6 +54,7 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 |    |   Feature         | Description |
 |----|-------------------|---------------------------------------------------------------|
 | ⚙️  | **Architecture**  | Server-side application using WebSockets for real-time audio streaming, with client-side support for Twitch Text-to-Speech functionality. Maintains web server to handle requests and WebSocket connections effectively. |
+| 🎨 | **Web UI**        | Single-page application with pages for creating TTS messages (`/create`), browsing voices (`/voices`), effects (`/effects`), and usage stats (`/chart`). Features drag-and-drop message builder, audio previews, and real-time validation. |
 | 🔩 | **Code Quality**  | Well-structured codebase with clear separation of concerns, detailed inline comments, consistent naming conventions, and adherence to best practices. Follows the principles of clean code and maintainable architecture. |
 | 📄 | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints. |
 | 🔌 | **Integrations**  | Relies on external libraries like godotenv, go-randomdata, WebSocket for Go, and others to enhance functionality like environment variable loading, random data generation, WebSocket communication, and real-time audio streaming. |
@@ -211,31 +212,49 @@ FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
 
 ##  Advanced Usage
 
-[v-voicename] is a voice tag meaning any text written after it will be spoken with that voice.
+### Web UI - Message Creator
 
-[e-effectname] is an effect tag which will play an effect.
+Visit `/create` on your server to access the **TTS Message Creator** - a visual tool for building TTS messages with drag-and-drop chips. This makes it easy to construct valid messages with:
+- **Voice chips** (cyan) - Switch between voices
+- **Effect chips** (pink) - Add sound effects
+- **Modifier chips** (green) - Apply audio effects like reverb
+- **Tag chips** (yellow) - ElevenLabs v3 expression tags
 
-(reverb) adds reverb to a TTS message.
+### Tag Syntax
 
-If you use a tag in a message you MUST use voice tags for all the text you want to say.
+Tags use parentheses `()` for voices, effects, and modifiers:
 
-✅`[v-voice] this is text and then an effect [e-effect]`
+`(voicename)` - Voice tag: text after this will be spoken by that voice.
 
-❌`this text has no voice tag [e-effect]`
+`(effectname)` - Effect tag: plays a sound effect from the `./effects` folder.
 
-✅`[v-voice] this is text and then an effect [e-effect] [v-voice] and then more text`
+`(reverb)` - Modifier tag: adds reverb to the following text.
 
-❌`[v-voice] this is text and then an effect [e-effect] this text has no voice tag`
+### ElevenLabs v3 Expression Tags
 
-✅`[e-effect] [v-voice] this is text`
+With ElevenLabs v3, you can add inline expression tags using square brackets `[]`:
 
-❌`[e-effect] this text has no voice tag`
+`(adam) This is so funny [laughter] I can't stop!`
 
-Example of reverb:
+Common expression tags include: `[laughter]`, `[laughs]`, `[sad]`, `[sigh]`, `[cries]`, `[screams]`, `[gasps]`, `[groans]`, `[sniffs]`, `[whisper]`, `[excited]`, and many more.
+
+### Rules
+
+✅ `(adam) this is text and then an effect (airhorn)`
+
+✅ `(adam) this is text and then an effect (airhorn) (brian) and then more text`
+
+✅ `(airhorn) (adam) this is text`
+
+### Reverb Example
 
 `(reverb) this is reverbed text`
 
-`[v-voice] (reverb) this is reverbed text with a specific voice.`
+`(adam) (reverb) this is reverbed text with a specific voice.`
+
+### Legacy Syntax
+
+The old bracket syntax `[v-voicename]` and `[e-effectname]` is still supported for backwards compatibility.
 
 ---
 
