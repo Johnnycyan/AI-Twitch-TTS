@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -55,33 +54,6 @@ func setupDB() {
 	dbClient, err = mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
-	}
-}
-
-func serveChart(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		ServerURL string
-	}{
-		ServerURL: serverURL,
-	}
-	tmpl, err := template.ParseFiles("static/chart.html")
-	if err != nil {
-		logger("Error parsing template: "+err.Error(), logError, "Universal")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	// Set headers to prevent caching
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Surrogate-Control", "no-store")
-
-	err = tmpl.Execute(w, data)
-	if err != nil {
-		logger("Error executing template: "+err.Error(), logError, "Universal")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
 	}
 }
 

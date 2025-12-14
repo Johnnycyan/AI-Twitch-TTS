@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"os"
-	"slices"
 	"strings"
 )
 
@@ -42,52 +40,6 @@ func listEffects(w http.ResponseWriter, _ *http.Request) {
 	responseString = strings.TrimSuffix(responseString, ", ")
 
 	w.Write([]byte(responseString))
-}
-
-func effectsHandler(w http.ResponseWriter, r *http.Request) {
-	// Ensure the URL path is exactly "/effects"
-	if r.URL.Path != "/effects" && r.URL.Path != "/effects/" {
-		http.NotFound(w, r)
-		return
-	}
-
-	// Set headers to prevent caching
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	w.Header().Set("Surrogate-Control", "no-store")
-
-	dir, err := os.Open(effectFolder)
-	if err != nil {
-		http.Error(w, "Unable to open effects directory", http.StatusInternalServerError)
-		return
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(-1)
-	if err != nil {
-		http.Error(w, "Unable to read directory", http.StatusInternalServerError)
-		return
-	}
-
-	var mp3Files []string
-	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".mp3") {
-			// remove the .mp3 extension from the file name
-			mp3Files = append(mp3Files, strings.TrimSuffix(file.Name(), ".mp3"))
-		}
-	}
-
-	slices.Sort(mp3Files)
-
-	data := FileListData{Files: mp3Files}
-	tmpl, err := template.ParseFiles("static/effects.html")
-	if err != nil {
-		http.Error(w, "Unable to parse template", http.StatusInternalServerError)
-		return
-	}
-
-	tmpl.Execute(w, data)
 }
 
 func getEffectSound(effect string) ([]byte, bool) {
