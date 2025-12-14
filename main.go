@@ -25,9 +25,11 @@ func setupHandlers() {
 	router.PathPrefix("/effects/").Handler(http.StripPrefix("/effects", http.FileServer(http.Dir(effectFolder))))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static", http.FileServer(http.Dir("./static"))))
 
-	router.HandleFunc("/voices", handleVoices)
-	router.HandleFunc("/effects", effectsHandler)
-	router.HandleFunc("/create", handleCreate)
+	router.HandleFunc("/voices", handleApp)
+	router.HandleFunc("/effects", handleApp)
+	router.HandleFunc("/create", handleApp)
+	router.HandleFunc("/api/voices", handleAPIVoices)
+	router.HandleFunc("/api/effects", handleAPIEffects)
 	router.HandleFunc("/tts", handleRequest)
 	router.HandleFunc("/ws", handleWebSocket)
 	router.HandleFunc("/fx", listEffects)
@@ -35,7 +37,7 @@ func setupHandlers() {
 	router.HandleFunc("/eleven/characters", getCharactersHandler)
 	if mongoEnabled {
 		router.HandleFunc("/data/{channel}", viewDataHandler)
-		router.HandleFunc("/chart", serveChart)
+		router.HandleFunc("/chart", handleApp)
 	}
 	router.HandleFunc("/", serveClient)
 

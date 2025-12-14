@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyan TTS</title>
+    <meta name="description" content="Create TTS messages with voices, effects, modifiers, and tags">
+    <link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg"
+        type="image/svg+xml">
+    <!-- Chart.js for usage page -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="stylesheet" href="/static/create.css">
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <a href="/create" class="nav-logo" data-spa-link>
+            <img src="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" alt="Logo">
+            <span>Cyan TTS</span>
+        </a>
+        <div class="nav-links">
+            <a href="/create" class="nav-link" data-spa-link data-page="create">Create</a>
+            <a href="/voices" class="nav-link" data-spa-link data-page="voices">Voices</a>
+            <a href="/effects" class="nav-link" data-spa-link data-page="effects">Effects</a>
+            <a href="/chart" class="nav-link" data-spa-link data-page="chart">Usage</a>
+        </div>
+    </nav>
+
+    <!-- Page Container -->
+    <div id="app-container">
+        <!-- Create Page -->
+        <div id="page-create" class="page" data-page="create">
+            <div class="container">
+                <h1 class="page-title">TTS Message Creator</h1>
+                <p class="page-subtitle">Drag and drop chips to build your TTS message</p>
+
+                <!-- Message Composer -->
+                <div class="composer-section">
+                    <label class="composer-label">Your Message</label>
+                    <div id="composer" class="message-composer" contenteditable="true" role="textbox"
+                        aria-multiline="false" data-placeholder="Start typing or drag chips here..."></div>
+                    <div id="validation" class="validation-status"></div>
+                </div>
+
+                <!-- Chip Toolbox -->
+                <div class="toolbox-section">
+                    <div class="toolbox-tabs">
+                        <button class="toolbox-tab active" data-tab="voices">Voices</button>
+                        <button class="toolbox-tab" data-tab="effects">Effects</button>
+                        <button class="toolbox-tab" data-tab="modifiers">Modifiers</button>
+                        <button class="toolbox-tab" data-tab="tags">Tags</button>
+                    </div>
+
+                    <div class="toolbox-content">
+                        <div id="panel-voices" class="chip-panel active">
+                            <div class="chip-grid" id="voices-chips"></div>
+                        </div>
+                        <div id="panel-effects" class="chip-panel">
+                            <div class="chip-grid" id="effects-chips"></div>
+                        </div>
+                        <div id="panel-modifiers" class="chip-panel">
+                            <div class="chip-grid" id="modifiers-chips"></div>
+                        </div>
+                        <div id="panel-tags" class="chip-panel">
+                            <p class="panel-info">
+                                💡 These are just examples! ElevenLabs v3 supports many expression tags — try things
+                                like <code>[whisper]</code>, <code>[excited]</code>, or almost anything you can think
+                                of.
+                            </p>
+                            <div class="chip-grid" id="tags-chips"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="actions-section">
+                    <button id="copyBtn" class="btn btn-gradient copy-btn" disabled>
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path
+                                d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                        </svg>
+                        Copy to Clipboard
+                    </button>
+                    <button id="clearBtn" class="btn" style="background: rgba(255,255,255,0.1);">
+                        Clear
+                    </button>
+                </div>
+
+                <!-- Help Section -->
+                <section class="help-section">
+                    <h2 class="help-title">How to Use</h2>
+                    <div class="help-grid">
+                        <div class="help-card">
+                            <div class="help-card-icon cyan">🎤</div>
+                            <h3 class="help-card-title">Voices</h3>
+                            <p class="help-card-text">Voice chips change who is speaking. Text after a voice chip will
+                                be spoken by that voice.</p>
+                            <div class="help-card-example">(adam) Hello world!</div>
+                        </div>
+                        <div class="help-card">
+                            <div class="help-card-icon pink">🔊</div>
+                            <h3 class="help-card-title">Effects</h3>
+                            <p class="help-card-text">Effect chips play a sound effect. They can be placed anywhere in
+                                your message.</p>
+                            <div class="help-card-example">(airhorn) (adam) Check this out!</div>
+                        </div>
+                        <div class="help-card">
+                            <div class="help-card-icon green">🎛️</div>
+                            <h3 class="help-card-title">Modifiers</h3>
+                            <p class="help-card-text">Modifiers like reverb apply audio effects to the text that
+                                follows.</p>
+                            <div class="help-card-example">(reverb) This has echo</div>
+                        </div>
+                        <div class="help-card">
+                            <div class="help-card-icon yellow">💬</div>
+                            <h3 class="help-card-title">Tags</h3>
+                            <p class="help-card-text">ElevenLabs v3 expression tags add emotions and sounds inline with
+                                your text.</p>
+                            <div class="help-card-example">(adam) I can't believe it [laughter]</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Voices Page -->
+        <div id="page-voices" class="page" data-page="voices">
+            <div class="container">
+                <h1 class="page-title">Voices</h1>
+                <p class="page-subtitle">Preview all available TTS voices</p>
+                <ul class="audio-list" id="voices-list"></ul>
+            </div>
+        </div>
+
+        <!-- Effects Page -->
+        <div id="page-effects" class="page" data-page="effects">
+            <div class="container">
+                <h1 class="page-title">Audio Effects</h1>
+                <p class="page-subtitle">Preview all available sound effects</p>
+                <ul class="audio-list" id="effects-list"></ul>
+            </div>
+        </div>
+
+        <!-- Usage/Chart Page -->
+        <div id="page-chart" class="page" data-page="chart">
+            <div class="chart-page-container">
+                <h1 class="page-title">TTS Usage</h1>
+                <p class="page-subtitle">Track character usage and estimated costs</p>
+
+                <div class="form-group">
+                    <input type="text" id="channel-input" class="custom-input" placeholder="Enter channel name">
+                    <div class="date-range">
+                        <div class="custom-select-wrapper">
+                            <select id="period-select" class="custom-select">
+                                <option value="week">Past Week</option>
+                                <option value="month">Past Month</option>
+                                <option value="year">Past Year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <input type="date" id="start-date" class="custom-input custom-date">
+                        <input type="date" id="end-date" class="custom-input custom-date">
+                    </div>
+                    <button class="btn btn-primary mt-3" id="loadDataBtn">Load Data</button>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Characters</div>
+                        <div class="stat-value" id="total-characters">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Cost</div>
+                        <div class="stat-value cost" id="total-cost">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Characters Left</div>
+                        <div class="stat-value" id="characters-left">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Characters Refresh</div>
+                        <div class="stat-value reset" id="characters-reset">-</div>
+                    </div>
+                </div>
+
+                <div class="chart-container" id="chart-container">
+                    <canvas id="dataChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast toast-success">Message copied!</div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
