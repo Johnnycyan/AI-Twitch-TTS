@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -221,10 +222,29 @@ func generateAudio(request Request) ([]byte, error) {
 		style = request.Voice.Style
 	}
 
+	// Adjust stability for v3 model - only accepts 0.0, 0.5, or 1.0
+	stability := request.Voice.Stability
+	if model == "eleven_v3" {
+		if stability < 0.25 {
+			stability = 0.0
+		} else if stability < 0.75 {
+			stability = 0.5
+		} else {
+			stability = 1.0
+		}
+	}
+
 	logger("Using style: "+fmt.Sprintf("%f", style), logDebug, request.Channel)
+	logger("Using stability: "+fmt.Sprintf("%f", stability), logDebug, request.Channel)
 
 	go func() {
-		err := ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: request.Voice.Stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
+		var err error
+		// Use custom function for models that don't support style parameter
+		if model == "eleven_v3" || model == "eleven_turbo_v2_5" || model == "eleven_flash_v2_5" {
+			err = ttsStreamWithoutStyle(ctx, elevenKey, pipeWriter, request.Text, model, request.Voice.Voice, stability, request.Voice.SimilarityBoost, format)
+		} else {
+			err = ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
+		}
 		if err != nil {
 			logger("Error generating TTS audio: "+err.Error(), logError, request.Channel)
 		}
@@ -247,6 +267,52 @@ func generateAudio(request Request) ([]byte, error) {
 	}
 
 	return audioData, nil
+}
+
+// ttsStreamWithoutStyle is a custom TTS function for models that don't support the style parameter (v3, turbo v2.5, flash v2.5)
+func ttsStreamWithoutStyle(ctx context.Context, apiKey string, w io.Writer, text, modelID, voiceID string, stability, clarity float64, format string) error {
+	url := "https://api.elevenlabs.io/v1/text-to-speech/" + voiceID + "/stream"
+
+	// Create request body without style field
+	requestBody := map[string]interface{}{
+		"text":     text,
+		"model_id": modelID,
+		"output_format": format,
+		"voice_settings": map[string]interface{}{
+			"stability":        stability,
+			"similarity_boost": clarity,
+		},
+	}
+
+	jsonData, err := json.Marshal(requestBody)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("xi-api-key", apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("accept", "audio/mpeg")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		// Read error response
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	_, err = io.Copy(w, resp.Body)
+	return err
 }
 
 type ClientData struct {
