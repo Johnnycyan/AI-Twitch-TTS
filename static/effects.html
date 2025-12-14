@@ -1,27 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/effects.css">
-    <link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" type="image/svg+xml">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@900&display=swap" rel="stylesheet">
-    <title>Audio Effects</title>
+    <title>Effects - Cyan TTS</title>
+    <meta name="description" content="Preview available audio effects">
+    <link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg"
+        type="image/svg+xml">
+    <link rel="stylesheet" href="/static/theme.css">
+    <style>
+        .audio-item-name {
+            color: var(--pink);
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Audio Effects</h1>
-    <ul>
-        {{range .Files}}
-        <li>{{.}}<br>
-            <audio controls>
-                <source src="/effects/{{.}}.mp3" type="audio/mpeg">
-                Your browser does not support the audio element.
-            </audio>
-        </li>
-        {{end}}
-    </ul>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <a href="/" class="nav-logo">
+            <img src="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" alt="Logo">
+            <span>Cyan TTS</span>
+        </a>
+        <div class="nav-links">
+            <a href="/create" class="nav-link">Create</a>
+            <a href="/voices" class="nav-link">Voices</a>
+            <a href="/effects" class="nav-link active">Effects</a>
+            <a href="/chart" class="nav-link">Usage</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="page-title">Audio Effects</h1>
+        <p class="page-subtitle">Preview all available sound effects</p>
+
+        <ul class="audio-list">
+            {{range .Files}}
+            <li class="audio-item">
+                <div class="audio-item-name">{{.}}</div>
+                <audio controls>
+                    <source src="/effects/{{.}}.mp3" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </li>
+            {{end}}
+        </ul>
+    </div>
 </body>
+
 </html>

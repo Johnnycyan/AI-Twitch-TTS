@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Message Creator</title>
+    <meta name="description"
+        content="Create TTS messages with voices, effects, modifiers, and tags using drag-and-drop chips">
+    <link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg"
+        type="image/svg+xml">
+    <link rel="stylesheet" href="/static/theme.css">
+    <link rel="stylesheet" href="/static/create.css">
+</head>
+
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="orb orb-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <a href="/" class="nav-logo">
+            <img src="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" alt="Logo">
+            <span>Cyan TTS</span>
+        </a>
+        <div class="nav-links">
+            <a href="/create" class="nav-link active">Create</a>
+            <a href="/voices" class="nav-link">Voices</a>
+            <a href="/effects" class="nav-link">Effects</a>
+            <a href="/chart" class="nav-link">Usage</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Header -->
+        <h1 class="page-title">TTS Message Creator</h1>
+        <p class="page-subtitle">Drag and drop chips to build your TTS message</p>
+
+        <!-- Message Composer -->
+        <div class="composer-section">
+            <label class="composer-label">Your Message</label>
+            <div id="composer" class="message-composer" contenteditable="true" role="textbox" aria-multiline="false"
+                data-placeholder="Start typing or drag chips here..."></div>
+            <div id="validation" class="validation-status"></div>
+        </div>
+
+        <!-- Chip Toolbox -->
+        <div class="toolbox-section">
+            <div class="toolbox-tabs">
+                <button class="toolbox-tab active" data-tab="voices">Voices</button>
+                <button class="toolbox-tab" data-tab="effects">Effects</button>
+                <button class="toolbox-tab" data-tab="modifiers">Modifiers</button>
+                <button class="toolbox-tab" data-tab="tags">Tags</button>
+            </div>
+
+            <div class="toolbox-content">
+                <!-- Voices Panel -->
+                <div id="panel-voices" class="chip-panel active">
+                    <div class="chip-grid">
+                        {{range .Voices}}
+                        <div class="chip chip-voice" draggable="true" data-value="({{.Name}})" data-type="voice">
+                            <span class="chip-name">{{.Name}}</span>
+                            <button class="preview-btn" data-url="{{.PreviewURL}}" title="Preview voice">
+                                <svg class="icon-speaker" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+                                </svg>
+                                <svg class="icon-stop" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+                                    <rect x="6" y="6" width="12" height="12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {{end}}
+                        {{if not .Voices}}
+                        <p class="chip-empty">No voices available</p>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Effects Panel -->
+                <div id="panel-effects" class="chip-panel">
+                    <div class="chip-grid">
+                        {{range .Effects}}
+                        <div class="chip chip-effect" draggable="true" data-value="({{.}})" data-type="effect">
+                            <span class="chip-name">{{.}}</span>
+                            <button class="preview-btn" data-url="/effects/{{.}}.mp3" title="Preview effect">
+                                <svg class="icon-speaker" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" />
+                                </svg>
+                                <svg class="icon-stop" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+                                    <rect x="6" y="6" width="12" height="12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {{end}}
+                        {{if not .Effects}}
+                        <p class="chip-empty">No effects available</p>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Modifiers Panel -->
+                <div id="panel-modifiers" class="chip-panel">
+                    <div class="chip-grid">
+                        {{range .Modifiers}}
+                        <div class="chip chip-modifier" draggable="true" data-value="({{.}})" data-type="modifier">
+                            <span class="chip-name">{{.}}</span>
+                        </div>
+                        {{end}}
+                        {{if not .Modifiers}}
+                        <p class="chip-empty">No modifiers available</p>
+                        {{end}}
+                    </div>
+                </div>
+
+                <!-- Tags Panel -->
+                <div id="panel-tags" class="chip-panel">
+                    <p class="panel-info">
+                        💡 These are just examples! ElevenLabs v3 supports many expression tags — try things like
+                        <code>[whisper]</code>, <code>[excited]</code>, or almost anything you can think of.
+                    </p>
+                    <div class="chip-grid">
+                        {{range .Tags}}
+                        <div class="chip chip-tag" draggable="true" data-value="[{{.}}]" data-type="tag">
+                            <span class="chip-name">{{.}}</span>
+                        </div>
+                        {{end}}
+                        {{if not .Tags}}
+                        <p class="chip-empty">No tags available</p>
+                        {{end}}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-section">
+            <button id="copyBtn" class="btn btn-gradient copy-btn" disabled>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path
+                        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                </svg>
+                Copy to Clipboard
+            </button>
+            <button id="clearBtn" class="btn" style="background: rgba(255,255,255,0.1);">
+                Clear
+            </button>
+        </div>
+
+        <!-- Help Section -->
+        <section class="help-section">
+            <h2 class="help-title">How to Use</h2>
+            <div class="help-grid">
+                <div class="help-card">
+                    <div class="help-card-icon cyan">🎤</div>
+                    <h3 class="help-card-title">Voices</h3>
+                    <p class="help-card-text">
+                        Voice chips change who is speaking. Text after a voice chip will be spoken by that voice.
+                    </p>
+                    <div class="help-card-example">(adam) Hello world!</div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-icon pink">🔊</div>
+                    <h3 class="help-card-title">Effects</h3>
+                    <p class="help-card-text">
+                        Effect chips play a sound effect. They can be placed anywhere in your message.
+                    </p>
+                    <div class="help-card-example">(airhorn) (adam) Check this out!</div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-icon green">🎛️</div>
+                    <h3 class="help-card-title">Modifiers</h3>
+                    <p class="help-card-text">
+                        Modifiers like reverb apply audio effects to the text that follows.
+                    </p>
+                    <div class="help-card-example">(reverb) This has echo</div>
+                </div>
+
+                <div class="help-card">
+                    <div class="help-card-icon yellow">💬</div>
+                    <h3 class="help-card-title">Tags</h3>
+                    <p class="help-card-text">
+                        ElevenLabs v3 expression tags add emotions and sounds inline with your text.
+                    </p>
+                    <div class="help-card-example">(adam) I can't believe it [laughter]</div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast toast-success">Message copied!</div>
+
+    <script src="/static/create.js"></script>
+</body>
+
+</html>

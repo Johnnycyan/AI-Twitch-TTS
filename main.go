@@ -27,6 +27,7 @@ func setupHandlers() {
 
 	router.HandleFunc("/voices", handleVoices)
 	router.HandleFunc("/effects", effectsHandler)
+	router.HandleFunc("/create", handleCreate)
 	router.HandleFunc("/tts", handleRequest)
 	router.HandleFunc("/ws", handleWebSocket)
 	router.HandleFunc("/fx", listEffects)

@@ -1,0 +1,494 @@
+/* =============================================
+   TTS Message Creator - Page Specific Styles
+   ============================================= */
+
+/* =============================================
+   Message Composer
+   ============================================= */
+
+.composer-section {
+    margin-bottom: 2rem;
+}
+
+.composer-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.message-composer {
+    width: 100%;
+    min-height: 120px;
+    max-height: 300px;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--border-subtle);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.8;
+    resize: none;
+    overflow-y: auto;
+    transition: all 0.2s ease;
+    
+    /* Allow visual wrapping */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.message-composer:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 3px var(--cyan-glow);
+}
+
+.message-composer.drag-over {
+    border-color: var(--cyan);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 20px var(--cyan-glow);
+}
+
+.message-composer::placeholder {
+    color: var(--text-muted);
+}
+
+/* Drop indicator cursor */
+.drop-indicator {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background: var(--cyan);
+    vertical-align: text-bottom;
+    margin: 0 1px;
+    animation: blink 0.8s ease-in-out infinite;
+    border-radius: 1px;
+    box-shadow: 0 0 8px var(--cyan);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Inline chips in composer */
+.composer-chip {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-weight: 500;
+    margin: 0 2px;
+    vertical-align: baseline;
+}
+
+/* =============================================
+   Validation
+   ============================================= */
+
+.validation-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    min-height: 24px;
+    font-size: 0.9rem;
+}
+
+.validation-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.validation-valid .validation-icon {
+    background: var(--green);
+    color: white;
+}
+
+.validation-invalid .validation-icon {
+    background: var(--red);
+    color: white;
+}
+
+.validation-message {
+    color: var(--text-secondary);
+}
+
+.validation-invalid .validation-message {
+    color: var(--red);
+}
+
+/* =============================================
+   Chip Toolbox
+   ============================================= */
+
+.toolbox-section {
+    margin-bottom: 2rem;
+}
+
+.toolbox-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.25rem;
+    border-radius: var(--border-radius);
+    overflow-x: auto;
+}
+
+.toolbox-tab {
+    flex: 1;
+    min-width: 100px;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.toolbox-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.toolbox-tab.active {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.toolbox-tab[data-tab="voices"].active {
+    color: var(--cyan);
+    background: rgba(0, 212, 255, 0.15);
+    box-shadow: 0 0 15px var(--cyan-glow);
+}
+
+.toolbox-tab[data-tab="effects"].active {
+    color: var(--pink);
+    background: rgba(255, 107, 157, 0.15);
+    box-shadow: 0 0 15px var(--pink-glow);
+}
+
+.toolbox-tab[data-tab="modifiers"].active {
+    color: var(--green);
+    background: rgba(74, 222, 128, 0.15);
+    box-shadow: 0 0 15px var(--green-glow);
+}
+
+.toolbox-tab[data-tab="tags"].active {
+    color: var(--yellow);
+    background: rgba(251, 191, 36, 0.15);
+    box-shadow: 0 0 15px var(--yellow-glow);
+}
+
+.toolbox-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--border-radius);
+    padding: 1.25rem;
+    min-height: 200px;
+}
+
+.chip-panel {
+    display: none;
+}
+
+.chip-panel.active {
+    display: block;
+}
+
+.chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.chip-empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.panel-info {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.panel-info code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85em;
+    color: var(--yellow);
+}
+
+/* =============================================
+   Chips
+   ============================================= */
+
+.chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.chip:active {
+    cursor: grabbing;
+}
+
+.chip.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+/* Voice chips - Cyan */
+.chip-voice {
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: var(--cyan);
+    padding-right: 2.5rem; /* Space for preview button */
+}
+
+.chip-voice:hover {
+    background: rgba(0, 212, 255, 0.25);
+    border-color: var(--cyan);
+    box-shadow: 0 0 15px var(--cyan-glow);
+}
+
+/* Effect chips - Pink */
+.chip-effect {
+    background: rgba(255, 107, 157, 0.15);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    color: var(--pink);
+    padding-right: 2.5rem;
+}
+
+.chip-effect:hover {
+    background: rgba(255, 107, 157, 0.25);
+    border-color: var(--pink);
+    box-shadow: 0 0 15px var(--pink-glow);
+}
+
+/* Modifier chips - Green */
+.chip-modifier {
+    background: rgba(74, 222, 128, 0.15);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: var(--green);
+}
+
+.chip-modifier:hover {
+    background: rgba(74, 222, 128, 0.25);
+    border-color: var(--green);
+    box-shadow: 0 0 15px var(--green-glow);
+}
+
+/* Tag chips - Yellow */
+.chip-tag {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: var(--yellow);
+}
+
+.chip-tag:hover {
+    background: rgba(251, 191, 36, 0.25);
+    border-color: var(--yellow);
+    box-shadow: 0 0 15px var(--yellow-glow);
+}
+
+/* =============================================
+   Preview Button
+   ============================================= */
+
+.preview-btn {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    background: var(--blue);
+    color: white;
+    font-size: 10px;
+}
+
+.preview-btn:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.5);
+}
+
+.preview-btn.playing {
+    background: var(--red);
+}
+
+.preview-btn.playing:hover {
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+}
+
+.preview-btn svg {
+    width: 10px;
+    height: 10px;
+}
+
+/* =============================================
+   Actions Section
+   ============================================= */
+
+.actions-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.copy-btn {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+/* =============================================
+   Help Section
+   ============================================= */
+
+.help-section {
+    margin-top: 3rem;
+}
+
+.help-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.help-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+}
+
+.help-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.help-card-icon.cyan { background: rgba(0, 212, 255, 0.15); }
+.help-card-icon.pink { background: rgba(255, 107, 157, 0.15); }
+.help-card-icon.green { background: rgba(74, 222, 128, 0.15); }
+.help-card-icon.yellow { background: rgba(251, 191, 36, 0.15); }
+
+.help-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.help-card-text {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.help-card-example {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius-sm);
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    overflow-x: auto;
+}
+
+/* =============================================
+   Responsive
+   ============================================= */
+
+@media (max-width: 768px) {
+    .message-composer {
+        min-height: 100px;
+    }
+    
+    .toolbox-tabs {
+        gap: 0.125rem;
+    }
+    
+    .toolbox-tab {
+        min-width: 80px;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .chip {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .chip-voice,
+    .chip-effect {
+        padding-right: 2.25rem;
+    }
+    
+    .preview-btn {
+        width: 22px;
+        height: 22px;
+        right: 4px;
+    }
+    
+    .actions-section {
+        flex-direction: column;
+    }
+    
+    .copy-btn {
+        width: 100%;
+    }
+}
