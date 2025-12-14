@@ -186,6 +186,10 @@ func generateAudio(request Request) ([]byte, error) {
 	if voiceModel != "" {
 		if voiceModel == "turbo" {
 			model = "eleven_turbo_v2"
+		} else if voiceModel == "v2" {
+			model = "eleven_multilingual_v2"
+		} else if voiceModel == "v3" {
+			model = "eleven_v3"
 		} else {
 			model = "eleven_v3"
 		}
