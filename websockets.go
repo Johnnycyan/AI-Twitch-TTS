@@ -133,7 +133,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if messageType == websocket.TextMessage {
+			switch messageType {
+			case websocket.TextMessage:
 				message := string(messageBytes)
 				if message == "ping" {
 					logger("Received ping from "+clientName, logFountain, channel)
@@ -161,8 +162,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				} else {
 					logger("Unknown message from "+clientName+": "+message, logDebug, channel)
 				}
-			} else if messageType == websocket.BinaryMessage {
+			case websocket.BinaryMessage:
 				logger("Received binary message from "+clientName, logDebug, channel)
+			default:
+				logger("Unknown message type from "+clientName, logDebug, channel)
 			}
 		}
 	}(clientName, channel, conn)

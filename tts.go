@@ -185,13 +185,14 @@ func generateAudio(request Request) ([]byte, error) {
 	}
 
 	if voiceModel != "" {
-		if voiceModel == "turbo" {
+		switch voiceModel {
+		case "turbo":
 			model = "eleven_turbo_v2"
-		} else if voiceModel == "v2" {
+		case "v2":
 			model = "eleven_multilingual_v2"
-		} else if voiceModel == "v3" {
+		case "v3":
 			model = "eleven_v3"
-		} else {
+		default:
 			model = "eleven_v3"
 		}
 	} else {
@@ -208,11 +209,12 @@ func generateAudio(request Request) ([]byte, error) {
 
 	userTier := strings.TrimSpace(clientData.Subscription.Tier)
 	var format string
-	if userTier == "starter" {
+	switch userTier {
+	case "starter":
 		format = "mp3_44100_128"
-	} else if userTier == "creator" {
+	case "creator":
 		format = "mp3_44100_192"
-	} else {
+	default:
 		format = "mp3_44100_128"
 	}
 
@@ -261,7 +263,7 @@ func generateAudio(request Request) ([]byte, error) {
 		verbAudio := reverb(audioData, request.Channel)
 		if verbAudio == nil {
 			logger("Error applying reverb to audio", logError, request.Channel)
-			return nil, fmt.Errorf("Error applying reverb to audio")
+			return nil, fmt.Errorf("error applying reverb to audio")
 		}
 		audioData = verbAudio
 	}
