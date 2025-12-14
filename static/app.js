@@ -18,7 +18,8 @@ const AppState = {
     dataLoaded: false,
     chart: null,
     currentAudio: null,
-    currentButton: null
+    currentButton: null,
+    previewVolume: 0.5
 };
 
 // =============================================
@@ -294,6 +295,21 @@ function initCreatePage() {
         composer.focus();
     });
 
+    // Volume slider
+    const volumeSlider = document.getElementById('previewVolume');
+    const volumeValue = document.getElementById('volumeValue');
+
+    volumeSlider.addEventListener('input', () => {
+        const value = volumeSlider.value;
+        AppState.previewVolume = value / 100;
+        volumeValue.textContent = value + '%';
+
+        // Update currently playing audio if any
+        if (AppState.currentAudio) {
+            AppState.currentAudio.volume = AppState.previewVolume;
+        }
+    });
+
     // Add placeholder styles
     const style = document.createElement('style');
     style.textContent = `
@@ -541,6 +557,7 @@ function togglePreview(button, audioUrl) {
     stopCurrentAudio();
 
     AppState.currentAudio = new Audio(audioUrl);
+    AppState.currentAudio.volume = AppState.previewVolume;
     AppState.currentButton = button;
 
     button.classList.add('playing');
