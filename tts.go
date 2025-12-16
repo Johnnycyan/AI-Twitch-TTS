@@ -239,6 +239,9 @@ func generateAudio(request Request) ([]byte, error) {
 	logger("Using style: "+fmt.Sprintf("%f", style), logDebug, request.Channel)
 	logger("Using stability: "+fmt.Sprintf("%f", stability), logDebug, request.Channel)
 
+	// Channel to capture TTS errors from the goroutine
+	errChan := make(chan error, 1)
+
 	go func() {
 		var err error
 		// Use custom function for models that don't support style parameter
@@ -248,7 +251,13 @@ func generateAudio(request Request) ([]byte, error) {
 			err = ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
 		}
 		if err != nil {
-			logger("Error generating TTS audio: "+err.Error(), logError, request.Channel)
+			// Log detailed parameters when API call fails
+			voiceName, _ := getVoiceName(request.Voice.Voice)
+			logger(fmt.Sprintf("Error generating TTS audio: %s | Parameters: text=%q, voice=%s (ID: %s), model=%s, stability=%.2f, similarity_boost=%.2f, format=%s",
+				err.Error(), request.Text, voiceName, request.Voice.Voice, model, stability, request.Voice.SimilarityBoost, format), logError, request.Channel)
+			errChan <- err
+		} else {
+			errChan <- nil
 		}
 		pipeWriter.Close()
 	}()
@@ -257,6 +266,12 @@ func generateAudio(request Request) ([]byte, error) {
 	if err != nil {
 		logger("Error reading TTS audio data: "+err.Error(), logError, request.Channel)
 		return nil, err
+	}
+
+	// Check if there was a TTS generation error
+	ttsErr := <-errChan
+	if ttsErr != nil {
+		return nil, ttsErr
 	}
 
 	if verb {
