@@ -274,6 +274,14 @@ func generateAudio(request Request) ([]byte, error) {
 		return nil, ttsErr
 	}
 
+	// Check if audio data is empty (can happen with some API errors)
+	if len(audioData) == 0 {
+		voiceName, _ := getVoiceName(request.Voice.Voice)
+		logger(fmt.Sprintf("Empty audio data received | Parameters: text=%q, voice=%s (ID: %s), stability=%.2f, similarity_boost=%.2f",
+			request.Text, voiceName, request.Voice.Voice, request.Voice.Stability, request.Voice.SimilarityBoost), logError, request.Channel)
+		return nil, fmt.Errorf("empty audio data received from TTS API")
+	}
+
 	if verb {
 		verbAudio := reverb(audioData, request.Channel)
 		if verbAudio == nil {

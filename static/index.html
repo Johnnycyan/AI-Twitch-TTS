@@ -119,11 +119,22 @@
 									source.start();
 								} catch (error) {
 									errorWithTimestamp('Error playing audio:', error);
-									socket.send('confirm ' + requestTime);
-									requestTime = null;
+									if (requestTime) {
+										socket.send('confirm ' + requestTime);
+										requestTime = null;
+									}
 									logWithTimestamp('Restarting...');
 									window.location.reload();
 								}
+							}, error => {
+								// Error callback for decodeAudioData
+								errorWithTimestamp('Error decoding audio buffer:', error);
+								if (requestTime) {
+									socket.send('confirm ' + requestTime);
+									requestTime = null;
+								}
+								logWithTimestamp('Restarting...');
+								window.location.reload();
 							});
 						} catch (error) {
 							errorWithTimestamp('Error decoding audio data:', error);
@@ -138,10 +149,12 @@
 					reader.readAsArrayBuffer(event.data);
 					reader.onerror = error => {
 						errorWithTimestamp('Error reading audio data:', error);
+						if (requestTime) {
+							socket.send('confirm ' + requestTime);
+							requestTime = null;
+						}
 						logWithTimestamp('Restarting...');
 						window.location.reload();
-						// clearInterval(restart);
-						// setInterval(restart, 1800000);
 					};
 				} catch (error) {
 					errorWithTimestamp('Error processing audio data:', error);
