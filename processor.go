@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -287,7 +288,12 @@ func ProcessAndPlay(msg Message) error {
 
 	// PHASE 1: Pre-generate all audio segments
 	logger("Pre-generating all audio segments", logDebug, msg.Channel)
-	var audioSegments [][]byte
+
+	type processedSegment struct {
+		audioData  []byte
+		durationMs int // original audio duration in ms (before reverb), 0 if not measured
+	}
+	var audioSegments []processedSegment
 
 	for _, segment := range segments {
 		var audioData []byte
@@ -300,7 +306,7 @@ func ProcessAndPlay(msg Message) error {
 				clearChannelRequests(msg.Channel)
 				return fmt.Errorf("effect sound not found: %s", segment.Effect)
 			}
-			audioData = effectAudio
+			audioSegments = append(audioSegments, processedSegment{audioData: effectAudio})
 		} else if segment.Text != "" {
 			// This is TTS audio
 			style, err := getVoiceStyle(segment.Voice)
@@ -343,9 +349,60 @@ func ProcessAndPlay(msg Message) error {
 				return err
 			}
 
-			// Apply modifiers if any
+			// Apply modifiers if any, filtering out built-in modifiers to avoid double-application
+			var durationMs int
 			if len(segment.Modifiers) > 0 {
-				audioData = applyModifiers(audioData, segment.Modifiers, msg.Channel)
+				// Get built-in modifiers for this voice
+				builtInModifiers := make(map[string]bool)
+				if modList, err := getVoiceModifiers(segment.Voice); err == nil {
+					for _, m := range strings.Split(modList, ",") {
+						builtInModifiers[strings.TrimSpace(strings.ToLower(m))] = true
+					}
+				}
+
+				// Filter out modifiers that are already built-in
+				var filteredModifiers []string
+				for _, mod := range segment.Modifiers {
+					if !builtInModifiers[strings.ToLower(mod)] {
+						filteredModifiers = append(filteredModifiers, mod)
+					} else {
+						logger("Skipping modifier '"+mod+"' (already built-in for voice)", logDebug, msg.Channel)
+					}
+				}
+
+				if len(filteredModifiers) > 0 {
+					// Measure original audio duration before applying reverb
+					for _, mod := range filteredModifiers {
+						if strings.ToLower(mod) == "reverb" {
+							if dur, err := getAudioLengthData(audioData, msg.Channel); err == nil {
+								durationMs = dur
+							}
+							break
+						}
+					}
+					audioData = applyModifiers(audioData, filteredModifiers, msg.Channel)
+				}
+			}
+
+			// Also check if generateAudio already applied reverb (built-in voice modifier)
+			// and measure duration for that case too
+			if durationMs == 0 {
+				if modList, err := getVoiceModifiers(segment.Voice); err == nil {
+					for _, m := range strings.Split(modList, ",") {
+						if strings.TrimSpace(strings.ToLower(m)) == "reverb" {
+							// generateAudio already applied reverb; we need to estimate original duration
+							// The reverb adds ~2s pad, so we can estimate by subtracting
+							if totalDur, err := getAudioLengthData(audioData, msg.Channel); err == nil {
+								// Subtract the reverb pad duration (2000ms)
+								durationMs = totalDur - 2000
+								if durationMs < 500 {
+									durationMs = 500
+								}
+							}
+							break
+						}
+					}
+				}
 			}
 
 			// Log data for MongoDB if enabled
@@ -357,25 +414,30 @@ func ProcessAndPlay(msg Message) error {
 					addData(data)
 				}
 			}
+
+			audioSegments = append(audioSegments, processedSegment{audioData: audioData, durationMs: durationMs})
 		} else {
 			continue
 		}
-
-		audioSegments = append(audioSegments, audioData)
 	}
 
 	logger(fmt.Sprintf("All %d audio segments generated, now sending", len(audioSegments)), logDebug, msg.Channel)
 
 	// PHASE 2: Send all pre-generated audio segments
-	for _, audioData := range audioSegments {
-		sendTextMessage(msg.Channel, "start "+requestTime)
+	for _, seg := range audioSegments {
+		// If we have an original duration, send it with the start message
+		if seg.durationMs > 0 {
+			sendTextMessage(msg.Channel, "start "+requestTime+" "+strconv.Itoa(seg.durationMs))
+		} else {
+			sendTextMessage(msg.Channel, "start "+requestTime)
+		}
 		time.Sleep(50 * time.Millisecond)
 
 		sendRequest := Request{
 			Channel: msg.Channel,
 			Time:    requestTime,
 		}
-		sendAudio(sendRequest, audioData)
+		sendAudio(sendRequest, seg.audioData)
 
 		// Wait for playback confirmation
 		playing[requestTime] = true

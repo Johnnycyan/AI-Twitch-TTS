@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>Cyan TTS Client</title>
-	<link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg" type="image/svg+xml">
+	<link rel="icon" href="https://raw.githubusercontent.com/Johnnycyan/Twitch-APIs/main/OneMoreDayIcon.svg"
+		type="image/svg+xml">
 </head>
+
 <body>
 	<h1></h1>
 
 	{{ if .SentryURL }}
-    <script src="{{ .SentryURL }}" crossorigin="anonymous"></script>
-    {{ end }}
+	<script src="{{ .SentryURL }}" crossorigin="anonymous"></script>
+	{{ end }}
 
 	<script>
 		const urlParams = new URLSearchParams(window.location.search);
@@ -18,6 +21,7 @@
 		var serverURL = "{{.ServerURL}}";
 		var Hash = "{{.Hash}}";
 		let requestTime;
+		let requestDurationMs = 0; // original audio duration in ms (before reverb), 0 = use onended
 
 		let socket;
 
@@ -65,8 +69,10 @@
 					if (typeof event.data === 'string') {
 						// if the event starts with "start", then it is a request to start the audio, split it by spaces and get the second element
 						if (event.type === 'message' && event.data.startsWith('start')) {
-							requestTime = event.data.split(' ')[1];
-							logWithTimestamp('Audio playback requested for:', requestTime);
+							const parts = event.data.split(' ');
+							requestTime = parts[1];
+							requestDurationMs = parts.length > 2 ? parseInt(parts[2], 10) : 0;
+							logWithTimestamp('Audio playback requested for:', requestTime, requestDurationMs > 0 ? `(duration: ${requestDurationMs}ms)` : '');
 							return;
 						} else if (event.data.startsWith('update')) {
 							version = event.data.split(' ')[1];
@@ -109,11 +115,29 @@
 									source.connect(compressor);
 									compressor.connect(audioContext.destination);
 
-									// Set up the ended event listener
+									// Set up playback confirmation
+									let confirmed = false;
+									const currentRequestTime = requestTime;
+
+									if (requestDurationMs > 0) {
+										// Reverb tail overlap: confirm after original duration, let reverb tail play underneath
+										setTimeout(() => {
+											if (!confirmed) {
+												confirmed = true;
+												logWithTimestamp('Sending early confirm (reverb tail still playing)');
+												socket.send('confirm ' + currentRequestTime);
+											}
+										}, requestDurationMs);
+									}
+
 									source.onended = () => {
 										logWithTimestamp('Audio playback completed');
-										socket.send('confirm ' + requestTime);
+										if (!confirmed) {
+											confirmed = true;
+											socket.send('confirm ' + currentRequestTime);
+										}
 										requestTime = null;
+										requestDurationMs = 0;
 									};
 
 									source.start();
@@ -183,7 +207,7 @@
 		// setInterval(restart, 1800000); // Restart every 30 minutes
 
 		// Add event listener for beforeunload event
-        window.addEventListener('beforeunload', () => {
+		window.addEventListener('beforeunload', () => {
 			try {
 				if (socket && socket.readyState === WebSocket.OPEN) {
 					socket.send('close');
@@ -192,7 +216,8 @@
 			} catch (error) {
 				errorWithTimestamp('Error closing WebSocket:', error);
 			}
-        });
+		});
 	</script>
 </body>
+
 </html>

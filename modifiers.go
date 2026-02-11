@@ -87,8 +87,8 @@ func deleteAudioFile(filename string) {
 }
 
 func addReverbToAudio(channel string) {
-	// ffmpeg -i input.mp3 -i "reverb.wav" -filter_complex "[0:a]apad=pad_dur=2[dry];[0:a]apad=pad_dur=2,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.8 0.2'" -b:a 320k output.mp3
-	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]volume=0.25,apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1'", "-b:a", "320k", "output-"+channel+".mp3")
+	// Apply reverb with volume normalization using loudnorm
+	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1',loudnorm=I=-16:TP=-1.5:LRA=11", "-b:a", "320k", "output-"+channel+".mp3")
 	err := cmd.Run()
 	if err != nil {
 		logger("Failed to add reverb to audio", logError, channel)
@@ -138,6 +138,33 @@ func getAudioLengthFile(filename string) (int, error) {
 	rounded := math.Ceil(float)
 
 	return int(rounded), nil
+}
+
+// getAudioLengthData measures audio duration from byte data, returns milliseconds
+func getAudioLengthData(data []byte, channel string) (int, error) {
+	tmpFile := "duration-" + channel + ".mp3"
+	saveAudioDataToFile(tmpFile, data)
+	defer deleteAudioFile(tmpFile)
+
+	cmd := exec.Command("ffprobe", "-i", tmpFile, "-show_entries", "format=duration", "-v", "quiet", "-of", "csv=p=0")
+	output, err := cmd.Output()
+	if err != nil {
+		logger("Failed to get audio length from data", logError, channel)
+		return 0, err
+	}
+
+	length := strings.TrimSpace(string(output))
+	if length == "" {
+		return 0, fmt.Errorf("empty duration output")
+	}
+
+	duration, err := strconv.ParseFloat(length, 64)
+	if err != nil {
+		logger("Failed to parse audio duration", logError, channel)
+		return 0, err
+	}
+
+	return int(duration * 1000), nil
 }
 
 // ModifierFunc type for audio modifier functions
