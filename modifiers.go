@@ -88,7 +88,7 @@ func deleteAudioFile(filename string) {
 
 func addReverbToAudio(channel string) {
 	// Apply reverb with volume normalization using loudnorm
-	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1',loudnorm=I=-23:TP=-1.5:LRA=11", "-b:a", "320k", "output-"+channel+".mp3")
+	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-i", "static/reverb.wav", "-filter_complex", "[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo[dry];[0:a]apad=pad_dur=2,aformat=channel_layouts=stereo,afir=dry=10:wet=10[wet];[dry][wet]amix=weights='0.9 0.1',loudnorm=I=-28:TP=-1.5:LRA=11", "-b:a", "320k", "output-"+channel+".mp3")
 	err := cmd.Run()
 	if err != nil {
 		logger("Failed to add reverb to audio", logError, channel)

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"net/http"
 
@@ -197,8 +196,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendAudio(request Request, audioData []byte) {
-	sendTextMessage(request.Channel, "start "+request.Time)
-	time.Sleep(50 * time.Millisecond)
 	requestName := getAudioDataName(request.Time)
 	for client, clientChannel := range clients {
 		if clientChannel == request.Channel {
