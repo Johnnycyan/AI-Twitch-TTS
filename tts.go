@@ -19,6 +19,7 @@ var (
 	voiceSpeeds         []VoiceSpeed
 	voiceSpeakerBoosts  []VoiceSpeakerBoost
 	voiceLanguages      []VoiceLanguage
+	voiceStabilities    []VoiceStability
 	defaultVoice        string
 	defaultVoiceID      string
 	elevenKey           string
@@ -53,6 +54,11 @@ type VoiceSpeakerBoost struct {
 type VoiceLanguage struct {
 	Name         string `json:"name"`
 	LanguageCode string `json:"language_code"`
+}
+
+type VoiceStability struct {
+	Name      string `json:"name"`
+	Stability string `json:"stability"`
 }
 
 type TTSSettings struct {
@@ -145,6 +151,18 @@ func setupVoiceLanguages() {
 	err := json.Unmarshal([]byte(voiceLanguagesEnv), &voiceLanguages)
 	if err != nil {
 		logger("Error unmarshalling voice languages: "+err.Error(), logError, "Universal")
+		return
+	}
+}
+
+func setupVoiceStabilities() {
+	voiceStabilitiesEnv := os.Getenv("VOICE_STABILITIES")
+	if voiceStabilitiesEnv == "" {
+		return
+	}
+	err := json.Unmarshal([]byte(voiceStabilitiesEnv), &voiceStabilities)
+	if err != nil {
+		logger("Error unmarshalling voice stabilities: "+err.Error(), logError, "Universal")
 		return
 	}
 }
@@ -272,6 +290,27 @@ func getVoiceLanguage(ID string) (string, error) {
 	}
 	logger("Voice language not found", logDebug, "Universal")
 	return "", fmt.Errorf("Voice language not found")
+}
+
+func getVoiceStability(ID string) (float64, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
+		return 0, err
+	}
+	logger("Getting voice stability for voice: "+voice, logDebug, "Universal")
+	for _, v := range voiceStabilities {
+		if strings.EqualFold(v.Name, voice) {
+			stability, err := strconv.ParseFloat(v.Stability, 64)
+			if err != nil {
+				logger("Error parsing voice stability: "+err.Error(), logError, "Universal")
+				return 0, err
+			}
+			return stability, nil
+		}
+	}
+	logger("Voice stability not found", logDebug, "Universal")
+	return 0, fmt.Errorf("Voice stability not found")
 }
 
 func generateAudio(request Request) ([]byte, error) {

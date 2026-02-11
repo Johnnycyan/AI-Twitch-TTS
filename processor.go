@@ -308,13 +308,18 @@ func ProcessAndPlay(msg Message) error {
 				style = msg.Style
 			}
 
+			stability := msg.Stability
+			if voiceStability, err := getVoiceStability(segment.Voice); err == nil {
+				stability = voiceStability
+			}
+
 			ttsRequest := Request{
 				Channel: msg.Channel,
 				Time:    requestTime,
 				Text:    segment.Text,
 				Voice: TTSSettings{
 					Voice:           segment.Voice,
-					Stability:       msg.Stability,
+					Stability:       stability,
 					SimilarityBoost: msg.SimilarityBoost,
 					Style:           style,
 				},
