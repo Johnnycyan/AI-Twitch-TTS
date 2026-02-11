@@ -315,28 +315,7 @@ func getVoiceStability(ID string) (float64, error) {
 }
 
 func generateAudio(request Request) ([]byte, error) {
-	var verb bool
-	if strings.HasPrefix(request.Text, "(reverb) ") {
-		verb = true
-		request.Text = strings.TrimPrefix(request.Text, "(reverb) ")
-	} else {
-		verb = false
-	}
-
 	logger("Generating TTS audio for text: "+request.Text, logDebug, request.Channel)
-
-	voiceModifierList, err := getVoiceModifiers(request.Voice.Voice)
-	if err != nil {
-		logger("No voice modifiers found", logDebug, request.Channel)
-	} else {
-		// split the voiceModifierList into a list of voice modifiers by splitting on the comma
-		voiceModifiers := strings.Split(voiceModifierList, ",")
-		for _, modifier := range voiceModifiers {
-			if modifier == "reverb" {
-				verb = true
-			}
-		}
-	}
 
 	ctx := context.Background()
 	pipeReader, pipeWriter := io.Pipe()
@@ -448,15 +427,6 @@ func generateAudio(request Request) ([]byte, error) {
 		logger(fmt.Sprintf("Empty audio data received | Parameters: text=%q, voice=%s (ID: %s), stability=%.2f, similarity_boost=%.2f",
 			request.Text, voiceName, request.Voice.Voice, request.Voice.Stability, request.Voice.SimilarityBoost), logError, request.Channel)
 		return nil, fmt.Errorf("empty audio data received from TTS API")
-	}
-
-	if verb {
-		verbAudio := reverb(audioData, request.Channel)
-		if verbAudio == nil {
-			logger("Error applying reverb to audio", logError, request.Channel)
-			return nil, fmt.Errorf("error applying reverb to audio")
-		}
-		audioData = verbAudio
 	}
 
 	return audioData, nil
