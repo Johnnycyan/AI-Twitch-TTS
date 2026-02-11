@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -362,6 +363,16 @@ func generateAudio(request Request) ([]byte, error) {
 	}
 
 	logger("Using model: "+model, logDebug, request.Channel)
+
+	// Strip v3 inline audio tags (e.g. [excited], [laughing]) if not using v3 model
+	if model != "eleven_v3" {
+		v3TagRe := regexp.MustCompile(`\[[^\]]*\]`)
+		stripped := strings.TrimSpace(v3TagRe.ReplaceAllString(request.Text, ""))
+		if stripped != request.Text {
+			logger("Stripped v3 tags from text for non-v3 model", logDebug, request.Channel)
+			request.Text = stripped
+		}
+	}
 
 	userInfo, err := getUserInfo(ctx)
 	if err != nil {
