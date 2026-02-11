@@ -10,20 +10,19 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/Johnnycyan/elevenlabs/client"
-	"github.com/Johnnycyan/elevenlabs/client/types"
 )
 
 var (
-	voices         []Voice
-	voiceModels    []VoiceModel
-	voiceStyles    []VoiceStyle
-	defaultVoice   string
-	defaultVoiceID string
-	elevenKey      string
-	ttsClient      client.Client
-	ttsKey         string
+	voices              []Voice
+	voiceModels         []VoiceModel
+	voiceStyles         []VoiceStyle
+	voiceSpeeds         []VoiceSpeed
+	voiceSpeakerBoosts  []VoiceSpeakerBoost
+	voiceLanguages      []VoiceLanguage
+	defaultVoice        string
+	defaultVoiceID      string
+	elevenKey           string
+	ttsKey              string
 )
 
 type Voice struct {
@@ -41,15 +40,45 @@ type VoiceStyle struct {
 	Style string `json:"style"`
 }
 
+type VoiceSpeed struct {
+	Name  string `json:"name"`
+	Speed string `json:"speed"`
+}
+
+type VoiceSpeakerBoost struct {
+	Name         string `json:"name"`
+	SpeakerBoost string `json:"speaker_boost"`
+}
+
+type VoiceLanguage struct {
+	Name         string `json:"name"`
+	LanguageCode string `json:"language_code"`
+}
+
 type TTSSettings struct {
 	Voice           string
 	Stability       float64
 	SimilarityBoost float64
 	Style           float64
+	Speed           float64
+	UseSpeakerBoost *bool
+	LanguageCode    string
 }
 
-func createClient() {
-	ttsClient = client.New(elevenKey)
+// ElevenLabs API response types
+type elevenLabsSubscription struct {
+	Tier                       string `json:"tier"`
+	CharacterCount             int    `json:"character_count"`
+	CharacterLimit             int    `json:"character_limit"`
+	NextCharacterCountResetUnix int   `json:"next_character_count_reset_unix"`
+}
+
+type elevenLabsUserInfo struct {
+	Subscription elevenLabsSubscription `json:"subscription"`
+}
+
+type elevenLabsVoiceInfo struct {
+	PreviewURL string `json:"preview_url"`
 }
 
 func setupVoices() {
@@ -80,6 +109,42 @@ func setupVoiceStyles() {
 	err := json.Unmarshal([]byte(voiceStylesEnv), &voiceStyles)
 	if err != nil {
 		logger("Error unmarshalling voice styles: "+err.Error(), logError, "Universal")
+		return
+	}
+}
+
+func setupVoiceSpeeds() {
+	voiceSpeedsEnv := os.Getenv("VOICE_SPEEDS")
+	if voiceSpeedsEnv == "" {
+		return
+	}
+	err := json.Unmarshal([]byte(voiceSpeedsEnv), &voiceSpeeds)
+	if err != nil {
+		logger("Error unmarshalling voice speeds: "+err.Error(), logError, "Universal")
+		return
+	}
+}
+
+func setupVoiceSpeakerBoosts() {
+	voiceSpeakerBoostsEnv := os.Getenv("VOICE_SPEAKER_BOOSTS")
+	if voiceSpeakerBoostsEnv == "" {
+		return
+	}
+	err := json.Unmarshal([]byte(voiceSpeakerBoostsEnv), &voiceSpeakerBoosts)
+	if err != nil {
+		logger("Error unmarshalling voice speaker boosts: "+err.Error(), logError, "Universal")
+		return
+	}
+}
+
+func setupVoiceLanguages() {
+	voiceLanguagesEnv := os.Getenv("VOICE_LANGUAGES")
+	if voiceLanguagesEnv == "" {
+		return
+	}
+	err := json.Unmarshal([]byte(voiceLanguagesEnv), &voiceLanguages)
+	if err != nil {
+		logger("Error unmarshalling voice languages: "+err.Error(), logError, "Universal")
 		return
 	}
 }
@@ -151,6 +216,64 @@ func getVoiceStyle(ID string) (float64, error) {
 	return 0, fmt.Errorf("Voice style not found")
 }
 
+func getVoiceSpeed(ID string) (float64, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
+		return 1.0, err
+	}
+	logger("Getting voice speed for voice: "+voice, logDebug, "Universal")
+	for _, v := range voiceSpeeds {
+		if strings.EqualFold(v.Name, voice) {
+			speed, err := strconv.ParseFloat(v.Speed, 64)
+			if err != nil {
+				logger("Error parsing voice speed: "+err.Error(), logError, "Universal")
+				return 1.0, err
+			}
+			return speed, nil
+		}
+	}
+	logger("Voice speed not found", logDebug, "Universal")
+	return 1.0, fmt.Errorf("Voice speed not found")
+}
+
+func getVoiceSpeakerBoost(ID string) (bool, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
+		return true, err
+	}
+	logger("Getting voice speaker boost for voice: "+voice, logDebug, "Universal")
+	for _, v := range voiceSpeakerBoosts {
+		if strings.EqualFold(v.Name, voice) {
+			boost, err := strconv.ParseBool(v.SpeakerBoost)
+			if err != nil {
+				logger("Error parsing voice speaker boost: "+err.Error(), logError, "Universal")
+				return true, err
+			}
+			return boost, nil
+		}
+	}
+	logger("Voice speaker boost not found", logDebug, "Universal")
+	return true, fmt.Errorf("Voice speaker boost not found")
+}
+
+func getVoiceLanguage(ID string) (string, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
+		return "", err
+	}
+	logger("Getting voice language for voice: "+voice, logDebug, "Universal")
+	for _, v := range voiceLanguages {
+		if strings.EqualFold(v.Name, voice) {
+			return v.LanguageCode, nil
+		}
+	}
+	logger("Voice language not found", logDebug, "Universal")
+	return "", fmt.Errorf("Voice language not found")
+}
+
 func generateAudio(request Request) ([]byte, error) {
 	var verb bool
 	if strings.HasPrefix(request.Text, "(reverb) ") {
@@ -201,13 +324,13 @@ func generateAudio(request Request) ([]byte, error) {
 
 	logger("Using model: "+model, logDebug, request.Channel)
 
-	clientData, err := ttsClient.GetUserInfo(ctx)
+	userInfo, err := getUserInfo(ctx)
 	if err != nil {
 		logger("Error getting user info: "+err.Error(), logError, request.Channel)
 		return nil, err
 	}
 
-	userTier := strings.TrimSpace(clientData.Subscription.Tier)
+	userTier := strings.TrimSpace(userInfo.Subscription.Tier)
 	var format string
 	switch userTier {
 	case "starter":
@@ -244,12 +367,7 @@ func generateAudio(request Request) ([]byte, error) {
 
 	go func() {
 		var err error
-		// Use custom function for models that don't support style parameter
-		if model == "eleven_v3" || model == "eleven_turbo_v2_5" || model == "eleven_flash_v2_5" {
-			err = ttsStreamWithoutStyle(ctx, elevenKey, pipeWriter, request.Text, model, request.Voice.Voice, stability, request.Voice.SimilarityBoost, format)
-		} else {
-			err = ttsClient.TTSStream(ctx, pipeWriter, request.Text, model, request.Voice.Voice, types.SynthesisOptions{Stability: stability, SimilarityBoost: request.Voice.SimilarityBoost, Format: format, Style: style})
-		}
+		err = ttsStream(ctx, elevenKey, pipeWriter, request.Text, model, request.Voice.Voice, stability, request.Voice.SimilarityBoost, style, request.Voice.Speed, request.Voice.UseSpeakerBoost, request.Voice.LanguageCode, format)
 		if err != nil {
 			// Log detailed parameters when API call fails
 			voiceName, _ := getVoiceName(request.Voice.Voice)
@@ -294,19 +412,36 @@ func generateAudio(request Request) ([]byte, error) {
 	return audioData, nil
 }
 
-// ttsStreamWithoutStyle is a custom TTS function for models that don't support the style parameter (v3, turbo v2.5, flash v2.5)
-func ttsStreamWithoutStyle(ctx context.Context, apiKey string, w io.Writer, text, modelID, voiceID string, stability, clarity float64, format string) error {
+// ttsStream is a custom TTS function that handles all models.
+// For v2 (eleven_multilingual_v2): includes style, speed, use_speaker_boost, and language_code.
+// For v3/turbo/flash: excludes style, speed, use_speaker_boost, and language_code.
+func ttsStream(ctx context.Context, apiKey string, w io.Writer, text, modelID, voiceID string, stability, clarity, style, speed float64, useSpeakerBoost *bool, languageCode, format string) error {
 	url := "https://api.elevenlabs.io/v1/text-to-speech/" + voiceID + "/stream"
 
-	// Create request body without style field
+	voiceSettings := map[string]interface{}{
+		"stability":        stability,
+		"similarity_boost": clarity,
+	}
+
 	requestBody := map[string]interface{}{
-		"text":     text,
-		"model_id": modelID,
-		"output_format": format,
-		"voice_settings": map[string]interface{}{
-			"stability":        stability,
-			"similarity_boost": clarity,
-		},
+		"text":           text,
+		"model_id":       modelID,
+		"output_format":  format,
+		"voice_settings": voiceSettings,
+	}
+
+	// v2-only parameters
+	if modelID == "eleven_multilingual_v2" {
+		voiceSettings["style"] = style
+		if speed != 0 {
+			voiceSettings["speed"] = speed
+		}
+		if useSpeakerBoost != nil {
+			voiceSettings["use_speaker_boost"] = *useSpeakerBoost
+		}
+		if languageCode != "" {
+			requestBody["language_code"] = languageCode
+		}
 	}
 
 	jsonData, err := json.Marshal(requestBody)
@@ -323,21 +458,80 @@ func ttsStreamWithoutStyle(ctx context.Context, apiKey string, w io.Writer, text
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("accept", "audio/mpeg")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		// Read error response
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
 	}
 
 	_, err = io.Copy(w, resp.Body)
 	return err
+}
+
+// getUserInfo fetches user info from the ElevenLabs API
+func getUserInfo(ctx context.Context) (*elevenLabsUserInfo, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.elevenlabs.io/v1/user", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("xi-api-key", elevenKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var userInfo elevenLabsUserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		return nil, err
+	}
+
+	return &userInfo, nil
+}
+
+// getVoicePreviewURL fetches the preview URL for a voice from the ElevenLabs API
+func getVoicePreviewURL(ctx context.Context, voiceID string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://api.elevenlabs.io/v1/voices/"+voiceID, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("xi-api-key", elevenKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var voiceInfo elevenLabsVoiceInfo
+	if err := json.NewDecoder(resp.Body).Decode(&voiceInfo); err != nil {
+		return "", err
+	}
+
+	return voiceInfo.PreviewURL, nil
 }
 
 type ClientData struct {
@@ -348,19 +542,19 @@ type ClientData struct {
 func getCharactersHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
-	clientInfo, err := ttsClient.GetUserInfo(ctx)
+	userInfo, err := getUserInfo(ctx)
 	if err != nil {
 		logger("Error getting user info: "+err.Error(), logError, "Universal")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	characters := clientInfo.Subscription.CharacterCount
-	characterLimit := clientInfo.Subscription.CharacterLimit
+	characters := userInfo.Subscription.CharacterCount
+	characterLimit := userInfo.Subscription.CharacterLimit
 
 	charactersRemaining := characterLimit - characters
 
-	charactersReset := clientInfo.Subscription.NextCharacterCountResetUnix
+	charactersReset := userInfo.Subscription.NextCharacterCountResetUnix
 
 	clientData := ClientData{
 		CharactersLeft:  int(charactersRemaining),

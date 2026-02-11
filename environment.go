@@ -40,7 +40,6 @@ func setupENV() {
 		logger("MongoDB environment variables provided. MongoDB will be enabled.", logInfo, "Universal")
 		mongoEnabled = true
 	}
-	createClient()
 	args := os.Args
 	if len(args) == 2 {
 		port = args[1]
@@ -57,6 +56,9 @@ func setupENV() {
 	setupVoices()
 	setupVoiceModels()
 	setupVoiceStyles()
+	setupVoiceSpeeds()
+	setupVoiceSpeakerBoosts()
+	setupVoiceLanguages()
 	setupVoiceModifiers()
 	setupDB()
 }

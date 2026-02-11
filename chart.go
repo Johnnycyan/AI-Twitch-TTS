@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Johnnycyan/elevenlabs/client"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -68,15 +67,14 @@ func createData(request Request) (*Data, error) {
 	}
 
 	ctx := context.Background()
-	client := client.New(elevenKey)
 
-	clientData, err := client.GetUserInfo(ctx)
+	userInfo, err := getUserInfo(ctx)
 	if err != nil {
 		logger("Error getting user info: "+err.Error(), logError, request.Channel)
 		return nil, err
 	}
 
-	elevenChars := float64(clientData.Subscription.CharacterLimit)
+	elevenChars := float64(userInfo.Subscription.CharacterLimit)
 
 	estimatedCost := float64(numCharacters) * elevenPrice / elevenChars
 

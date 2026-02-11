@@ -320,6 +320,17 @@ func ProcessAndPlay(msg Message) error {
 				},
 			}
 
+			// Look up v2-specific per-voice settings
+			if speed, err := getVoiceSpeed(segment.Voice); err == nil {
+				ttsRequest.Voice.Speed = speed
+			}
+			if boost, err := getVoiceSpeakerBoost(segment.Voice); err == nil {
+				ttsRequest.Voice.UseSpeakerBoost = &boost
+			}
+			if lang, err := getVoiceLanguage(segment.Voice); err == nil {
+				ttsRequest.Voice.LanguageCode = lang
+			}
+
 			audioData, err = generateAudio(ttsRequest)
 			if err != nil {
 				logger("Error generating audio: "+err.Error(), logError, msg.Channel)

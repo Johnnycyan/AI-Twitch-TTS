@@ -45,13 +45,13 @@ func handleAPIVoices(w http.ResponseWriter, r *http.Request) {
 
 	var voiceList []VoiceData
 	for _, v := range voices {
-		voiceInfo, err := ttsClient.GetVoice(ctx, v.ID)
+		previewURL, err := getVoicePreviewURL(ctx, v.ID)
 		if err != nil {
 			continue
 		}
 		voiceList = append(voiceList, VoiceData{
 			Name:       v.Name,
-			PreviewURL: voiceInfo.PreviewURL,
+			PreviewURL: previewURL,
 		})
 	}
 
