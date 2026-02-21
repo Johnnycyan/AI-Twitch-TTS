@@ -487,7 +487,7 @@ func playAlertSound(channel string) {
 
 // isModifier checks if a string is a known modifier name
 func isModifier(name string) bool {
-	modifiers := []string{"reverb"} // Add more modifiers here
+	modifiers := []string{"reverb", "phone"} // Add more modifiers here
 	for _, m := range modifiers {
 		if strings.EqualFold(m, name) {
 			return true

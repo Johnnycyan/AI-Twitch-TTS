@@ -12,7 +12,7 @@ const AppState = {
     data: {
         voices: [],
         effects: [],
-        modifiers: ['reverb'],
+        modifiers: ['reverb', 'phone'],
         tags: ['laughter', 'laughs', 'sad', 'sigh', 'cries', 'screams', 'gasps', 'groans', 'sniffs']
     },
     dataLoaded: false,

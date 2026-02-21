@@ -18,6 +18,7 @@
 </p>
 
 <br><!-- TABLE OF CONTENTS -->
+
 <details>
   <summary>Table of Contents</summary><br>
 
@@ -34,7 +35,7 @@
 
 <a name="-overview"></a>
 
-##  Overview
+## Overview
 
 AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interactive streaming experiences. The project orchestrates WebSocket connections for audio streaming, processes chat requests, and interfaces with external APIs for voice synthesis. It offers customizable voice options, real-time chat handling, and automated websocket reconnections, enhancing viewer engagement on Twitch streams. The projects modular design ensures a seamless integration of dependencies, automated testing, and CI/CD workflows for efficient development and deployment processes.
 
@@ -42,51 +43,46 @@ AI-Twitch-TTS is a real-time Twitch Text-to-Speech application built for interac
 
 <a name="-example"></a>
 
-##  Example Usage from [Samifying](https://www.twitch.tv/samifying)
+## Example Usage from [Samifying](https://www.twitch.tv/samifying)
 
 https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9964-2773146901d8
 
 ---
 
-##  Features<a name="-features"></a>
+## Features<a name="-features"></a>
 
-
-|    |   Feature         | Description |
-|----|-------------------|---------------------------------------------------------------|
-| ⚙️  | **Architecture**  | Server-side application using WebSockets for real-time audio streaming, with client-side support for Twitch Text-to-Speech functionality. Maintains web server to handle requests and WebSocket connections effectively. |
-| 🎨 | **Web UI**        | Single-page application with pages for creating TTS messages (`/create`), browsing voices (`/voices`), effects (`/effects`), and usage stats (`/chart`). Features drag-and-drop message builder, audio previews, and real-time validation. |
-| 🔩 | **Code Quality**  | Well-structured codebase with clear separation of concerns, detailed inline comments, consistent naming conventions, and adherence to best practices. Follows the principles of clean code and maintainable architecture. |
-| 📄 | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints. |
-| 🔌 | **Integrations**  | Relies on external libraries like godotenv, go-randomdata, WebSocket for Go, and others to enhance functionality like environment variable loading, random data generation, WebSocket communication, and real-time audio streaming. |
-| 🧩 | **Modularity**    | Codebase exhibits modularity through separate modules for logging, WebSocket handling, text-to-speech requests, alerts retrieval, and Pally WebSocket connections. Modules are designed for reusability and maintainability. |
+|     | Feature           | Description                                                                                                                                                                                                                                |
+| --- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ⚙️  | **Architecture**  | Server-side application using WebSockets for real-time audio streaming, with client-side support for Twitch Text-to-Speech functionality. Maintains web server to handle requests and WebSocket connections effectively.                   |
+| 🎨  | **Web UI**        | Single-page application with pages for creating TTS messages (`/create`), browsing voices (`/voices`), effects (`/effects`), and usage stats (`/chart`). Features drag-and-drop message builder, audio previews, and real-time validation. |
+| 🔩  | **Code Quality**  | Well-structured codebase with clear separation of concerns, detailed inline comments, consistent naming conventions, and adherence to best practices. Follows the principles of clean code and maintainable architecture.                  |
+| 📄  | **Documentation** | Adequate documentation with detailed explanations for modules like logging, environment setup, WebSocket handling, and HTTP endpoints.                                                                                                     |
+| 🔌  | **Integrations**  | Relies on external libraries like godotenv, go-randomdata, WebSocket for Go, and others to enhance functionality like environment variable loading, random data generation, WebSocket communication, and real-time audio streaming.        |
+| 🧩  | **Modularity**    | Codebase exhibits modularity through separate modules for logging, WebSocket handling, text-to-speech requests, alerts retrieval, and Pally WebSocket connections. Modules are designed for reusability and maintainability.               |
 
 ---
 
 <a name="-getting-started"></a>
 
-##  Getting Started
+## Getting Started
 
 **System Requirements:**
 
-* **Internet**
+- **Internet**
 
-* **ffmpeg**
+- **ffmpeg**
 
 <a name="-installation"></a>
 
-###  Installation
+### Installation
 
 <h4>From <code>releases</code></h4>
 
 > 1. Download latest release:
->     1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases/latest)
->
+>    1. [Latest Release](https://github.com/Johnnycyan/AI-Twitch-TTS/releases/latest)
 > 2. Create `./alerts/<channel>` folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
->
 > 3. Create `./effects` folder with effect sound(s) in it for effect tags
->
 > 4. Create a `.env` file in the same directory
->
 > 5. Fill out required Environmental Variables explained below and in the .env.example
 
 ---
@@ -94,12 +90,11 @@ https://github.com/Johnnycyan/AI-Twitch-TTS/assets/24556317/3996ecab-cb1e-4e46-9
 <h4>From <code>docker</code></h4>
 
 > 1. Create `./effects` folder with effect sound(s) in it for effect tags
->
 > 2. Create `./alerts/<channel>` folder with alert sound(s) in it for [Pally](https://pally.gg) (optional)
->
 > 3. Either create a `.env` file with the required Environmental Variables explained below and in the .env.example or just change them in the compose file.
 
 `docker-compose.yml`
+
 ```
 version: "3.8"
 services:
@@ -144,49 +139,56 @@ volumes:
   mongodb_data:
 ```
 
-Variable         |  Description
--------------    | -------------
-ELEVENLABS_KEY   | Elevenlabs API key
-SERVER_URL       | URL of where the server will be hosted (no protocol) Ex: example.com
-TTS_KEY          | Secret key used to authenticate TTS generation
-VOICES           | Json string list of name/id pairs for Elevenlabs voices
-VOICE_MODELS     | Json string list of name/model pairs for Elevenlabs voices (optional)
-VOICE_STYLES     | Json string list of name/style pairs for Elevenlabs voices (optional)
-VOICE_MODIFIERS  | Json string list of name/modifier pairs for Elevenlabs voices (optional)
-PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)
-PALLY_VOICES     | Json string list of channel/voice pairs for [Pally](https://pally.gg) (optional)
-SENTRY_URL       | URL for Sentry logging of the client (optional)
-MONGO_HOST       | URL for MongoDB Host (optional)
-MONGO_PORT       | Port for MongoDB (optional)
-MONGO_USER       | Username for MongoDB (optional)
-MONGO_PASS       | Password for MongoDB (optional)
-MONGO_DB         | Database name for MongoDB (optional)
-ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)
-FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
-
+| Variable         | Description                                                                      |
+| ---------------- | -------------------------------------------------------------------------------- |
+| ELEVENLABS_KEY   | Elevenlabs API key                                                               |
+| SERVER_URL       | URL of where the server will be hosted (no protocol) Ex: example.com             |
+| TTS_KEY          | Secret key used to authenticate TTS generation                                   |
+| VOICES           | Json string list of name/id pairs for Elevenlabs voices                          |
+| VOICE_MODELS     | Json string list of name/model pairs for Elevenlabs voices (optional)            |
+| VOICE_STYLES     | Json string list of name/style pairs for Elevenlabs voices (optional)            |
+| VOICE_MODIFIERS  | Json string list of name/modifier pairs for Elevenlabs voices (optional)         |
+| PALLY_KEYS       | Json string list of name/key pairs for [Pally](https://pally.gg) (optional)      |
+| PALLY_VOICES     | Json string list of channel/voice pairs for [Pally](https://pally.gg) (optional) |
+| SENTRY_URL       | URL for Sentry logging of the client (optional)                                  |
+| MONGO_HOST       | URL for MongoDB Host (optional)                                                  |
+| MONGO_PORT       | Port for MongoDB (optional)                                                      |
+| MONGO_USER       | Username for MongoDB (optional)                                                  |
+| MONGO_PASS       | Password for MongoDB (optional)                                                  |
+| MONGO_DB         | Database name for MongoDB (optional)                                             |
+| ELEVENLABS_PRICE | Monthly Price of Elevenlabs Subscription (optional)                              |
+| FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)                      |
 
 <a name="-usage"></a>
 
-##  Usage
+## Usage
 
 <h4>From <code>releases</code></h4>
 
 > ⚠️ Might not work without an SSL connection. Has not been tested.
+>
 > 1. Run AI-Twitch-TTS using the command below:
->     1. Logging mode is optional. Options: info, debug, fountain
+>    1. Logging mode is optional. Options: info, debug, fountain
+>
 > ```console
 > $ ./AI-Twitch-TTS <port> <logging-mode>
 > ```
+>
 > or
+>
 > ```console
 > $ AI-Twitch-TTS.exe <port> <logging-mode>
 > ```
+>
 > 2. Add this to your OBS as a browser source
+>
 > ```
 > http(s)://$SERVER_URL/?channel=<username>
 > ```
+>
 > 3. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
->     1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
+>    1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
+>
 > ```
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
 > ```
@@ -196,12 +198,16 @@ FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
 <h4>From <code>docker</code></h4>
 
 > ⚠️ Might not work without an SSL connection. Has not been tested.
+>
 > 1. Add this to your OBS as a browser source
+>
 > ```
 > http(s)://$SERVER_URL/?channel=<username>
 > ```
+>
 > 2. Generate TTS by accessing this URL either through a browser or a Twitch chat bot (voice is optional):
->     1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
+>    1. See [ Advanced Usage](#-advanced-usage) to see how to use multiple voices and effects in one message.
+>
 > ```
 > http(s)://$SERVER_URL/tts?channel=<username>&key=$TTS_KEY&voice=<voicename>&text=<text to generate>
 > ```
@@ -210,14 +216,15 @@ FFMPEG_ENABLED   | Bool for if you have ffmpeg installed. (FFMPEG IS REQUIRED)
 
 <a name="-advanced-usage"></a>
 
-##  Advanced Usage
+## Advanced Usage
 
 ### Web UI - Message Creator
 
 Visit `/create` on your server to access the **TTS Message Creator** - a visual tool for building TTS messages with drag-and-drop chips. This makes it easy to construct valid messages with:
+
 - **Voice chips** (cyan) - Switch between voices
 - **Effect chips** (pink) - Add sound effects
-- **Modifier chips** (green) - Apply audio effects like reverb
+- **Modifier chips** (green) - Apply audio effects like reverb or phone
 - **Tag chips** (yellow) - ElevenLabs v3 expression tags
 
 ### Tag Syntax
@@ -229,6 +236,8 @@ Tags use parentheses `()` for voices, effects, and modifiers:
 `(effectname)` - Effect tag: plays a sound effect from the `./effects` folder.
 
 `(reverb)` - Modifier tag: adds reverb to the following text.
+
+`(phone)` - Modifier tag: adds a telephone effect to the following text.
 
 ### ElevenLabs v3 Expression Tags
 
@@ -250,7 +259,11 @@ Common expression tags include: `[laughter]`, `[laughs]`, `[sad]`, `[sigh]`, `[c
 
 `(reverb) this is reverbed text`
 
+`(phone) this is phone text`
+
 `(adam) (reverb) this is reverbed text with a specific voice.`
+
+`(adam) (phone) this is phone text with a specific voice.`
 
 ### Legacy Syntax
 
@@ -260,7 +273,7 @@ The old bracket syntax `[v-voicename]` and `[e-effectname]` is still supported f
 
 <a name="-license"></a>
 
-##  License
+## License
 
 This project is protected under the [MIT](https://choosealicense.com/licenses/mit/) License. For more details, refer to the [LICENSE](https://github.com/Johnnycyan/AI-Twitch-TTS/blob/master/LICENSE) file.
 

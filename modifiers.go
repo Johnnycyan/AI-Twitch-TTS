@@ -114,6 +114,34 @@ func reverb(data []byte, channel string) []byte {
 	return reverbData
 }
 
+func addPhoneToAudio(channel string) {
+	// Apply phone effect (bandpass filter and volume boost)
+	cmd := exec.Command("ffmpeg", "-i", "input-"+channel+".mp3", "-filter_complex", "highpass=f=800,lowpass=f=1800,acrusher=level_in=1:level_out=1:bits=2:mode=log:aa=1,volume=1.5", "-b:a", "320k", "output-"+channel+".mp3")
+	err := cmd.Run()
+	if err != nil {
+		logger("Failed to add phone effect to audio", logError, channel)
+	}
+}
+
+func phone(data []byte, channel string) []byte {
+	// Save audio data to file
+	saveAudioDataToFile("input-"+channel+".mp3", data)
+
+	// Add phone effect to audio
+	addPhoneToAudio(channel)
+
+	// Delete the input file
+	deleteAudioFile("input-" + channel + ".mp3")
+
+	// Load the phone data from the output file
+	phoneData := loadAudioDataFromFile("output-" + channel + ".mp3")
+
+	// Delete the output file
+	deleteAudioFile("output-" + channel + ".mp3")
+
+	return phoneData
+}
+
 func getAudioLengthFile(filename string) (int, error) {
 	logger("Getting audio length", logDebug, "Universal")
 
@@ -173,6 +201,7 @@ type ModifierFunc func(data []byte, channel string) []byte
 // modifierFuncs maps modifier names to their functions
 var modifierFuncs = map[string]ModifierFunc{
 	"reverb": reverb,
+	"phone":  phone,
 	// Add more modifiers here
 }
 
