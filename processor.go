@@ -45,7 +45,7 @@ const (
 // ParseMessage parses a text message into audio segments
 // Supports both new syntax (voicename) and legacy (v-voicename), (e-effectname)
 // Note: We use () instead of [] because ElevenLabs v3 uses [] for inline audio tags
-func ParseMessage(msg Message) ([]AudioSegment, error) {
+func ParseMessage(msg Message, kind ...string) ([]AudioSegment, error) {
 	text := msg.Text
 	if text == "" {
 		return nil, fmt.Errorf("empty message")
@@ -60,7 +60,7 @@ func ParseMessage(msg Message) ([]AudioSegment, error) {
 	}
 
 	// Parse the text into segments
-	segments, err := parseTextToSegments(text, defaultVoiceID)
+	segments, err := parseTextToSegments(text, defaultVoiceID, kind...)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func ParseMessage(msg Message) ([]AudioSegment, error) {
 }
 
 // parseTextToSegments handles the core parsing logic
-func parseTextToSegments(text string, defaultVoiceID string) ([]AudioSegment, error) {
+func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]AudioSegment, error) {
 	var segments []AudioSegment
 
 	// Current state
@@ -179,7 +179,12 @@ func parseTextToSegments(text string, defaultVoiceID string) ([]AudioSegment, er
 			})
 
 		case tagUnknown:
-			return nil, fmt.Errorf("unknown tag: %s", tagContent)
+			if len(kind) > 0 && kind[0] == "pally" {
+				logger("Unknown tag '"+tagContent+"' in Pally message, ignoring tag but keeping text", logInfo, "")
+				pendingText += " " + tagContent
+			} else {
+				return nil, fmt.Errorf("unknown tag: %s", tagContent)
+			}
 		}
 
 		lastEnd = tagEnd
@@ -256,11 +261,11 @@ func getActiveModifiers(modifiers map[string]bool) []string {
 
 // ProcessAndPlay parses a message and plays the audio segments
 // This is the main entry point for the unified processing pipeline
-func ProcessAndPlay(msg Message) error {
+func ProcessAndPlay(msg Message, kind ...string) error {
 	logger("Processing message through unified pipeline", logInfo, msg.Channel)
 
 	// Parse the message into segments
-	segments, err := ParseMessage(msg)
+	segments, err := ParseMessage(msg, kind...)
 	if err != nil {
 		logger("Error parsing message: "+err.Error(), logError, msg.Channel)
 		return err

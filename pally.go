@@ -198,7 +198,7 @@ func handlePallyMessage(message []byte, channel string) {
 	}
 
 	go func() {
-		err := ProcessAndPlay(msg)
+		err := ProcessAndPlay(msg, "pally")
 		if err != nil {
 			logger("Error processing Pally message: "+err.Error(), logError, channel)
 		}

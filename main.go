@@ -39,9 +39,19 @@ func setupHandlers() {
 		router.HandleFunc("/data/{channel}", viewDataHandler)
 		router.HandleFunc("/chart", handleApp)
 	}
-	router.HandleFunc("/", serveClient)
+	router.HandleFunc("/", baseHandler)
 
 	http.Handle("/", router)
+}
+
+func baseHandler(w http.ResponseWriter, r *http.Request) {
+	// If there are no query parameter, redirect to /create
+	if len(r.URL.Query()) == 0 {
+		http.Redirect(w, r, "/create", http.StatusSeeOther)
+		return
+	} else {
+		serveClient(w, r)
+	}
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
