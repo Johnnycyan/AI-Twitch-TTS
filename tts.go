@@ -367,6 +367,8 @@ func generateAudio(request Request) ([]byte, error) {
 		logger("Dropping audio_effects for non-v4 model "+model, logDebug, request.Channel)
 	}
 
+	logger("Using audio effects: "+fmt.Sprintf("%+v", request.AudioEffects), logDebug, request.Channel)
+
 	// Strip v3/v4 inline audio tags (e.g. [excited], [laughing]) if not using v3/v4 model
 	if model == "eleven_turbo_v2" || model == "eleven_multilingual_v2" {
 		v3TagRe := regexp.MustCompile(`\[[^\]]*\]`)
@@ -496,7 +498,9 @@ func ttsStream(ctx context.Context, apiKey string, w io.Writer, params ttsParams
 	if params.previousText != "" {
 		requestBody["previous_text"] = params.previousText
 	}
-	if params.nextText != "" {
+
+	// Only add next if there isn't an environment_id in audio_effects because it breaks it
+	if params.nextText != "" && (params.audioEffects == nil || params.audioEffects.EnvironmentID == "") {
 		requestBody["next_text"] = params.nextText
 	}
 
@@ -523,6 +527,8 @@ func ttsStream(ctx context.Context, apiKey string, w io.Writer, params ttsParams
 			"distance":            params.audioEffects.Distance,
 		}
 	}
+
+	logger(fmt.Sprintf("Sending TTS request to %s with body: %+v", url, requestBody), logDebug, "Universal")
 
 	jsonData, err := json.Marshal(requestBody)
 	if err != nil {
