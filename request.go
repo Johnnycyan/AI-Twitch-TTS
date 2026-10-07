@@ -29,14 +29,17 @@ type URLParams struct {
 
 // Index: Index of the request, Type: Type of the request, Time: Time of the request, Params: URL parameters, Voice: TTS settings, Text: Text to be converted to speech
 type Request struct {
-	Index   int
-	Type    string
-	Channel string
-	Time    string
-	Params  URLParams
-	Voice   TTSSettings
-	Text    string
-	Effect  string
+	Index        int
+	Type         string
+	Channel      string
+	Time         string
+	Params       URLParams
+	Voice        TTSSettings
+	Text         string
+	Effect       string
+	AudioEffects *AudioEffects
+	PreviousText string
+	NextText     string
 }
 
 type Part struct {

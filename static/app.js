@@ -13,7 +13,14 @@ const AppState = {
         voices: [],
         effects: [],
         modifiers: ['reverb', 'phone'],
-        tags: ['laughter', 'laughs', 'sad', 'sigh', 'cries', 'screams', 'gasps', 'groans', 'sniffs']
+        tags: ['laughter', 'laughs', 'sad', 'sigh', 'cries', 'screams', 'gasps', 'groans', 'sniffs'],
+        audioEffects: {
+            filters: ['old_radio', 'robot', 'cheap_microphone', 'phone', 'low_quality_phone', 'bright_phone'],
+            environments: ['small_room', 'big_room', 'hall', 'tunnel', 'street', 'valley', 'forest'],
+            noises: ['call_center', 'cafe', 'city', 'keyboard'],
+            distances: [['near', 0.25], ['medium', 0.6], ['far', 1]],
+            resets: ['filter-off', 'environment-off', 'noise-off', 'distance-off', 'effects-off']
+        }
     },
     dataLoaded: false,
     chart: null,
@@ -75,6 +82,7 @@ function populateChips() {
     const effectsGrid = document.getElementById('effects-chips');
     const modifiersGrid = document.getElementById('modifiers-chips');
     const tagsGrid = document.getElementById('tags-chips');
+    const ae = AppState.data.audioEffects;
 
     // Voices
     voicesGrid.innerHTML = AppState.data.voices.map(v => `
@@ -119,6 +127,34 @@ function populateChips() {
             <span class="chip-name">${t}</span>
         </div>
     `).join('') || '<p class="chip-empty">No tags available</p>';
+
+    // Audio Effects
+    const renderEffectChips = (items, map) => items.map(map).join('') || '<p class="chip-empty">None available</p>';
+    document.getElementById('audioeffects-filters-chips').innerHTML = renderEffectChips(ae.filters, f => `
+        <div class="chip chip-audioeffect" draggable="true" data-value="<${f}>" data-type="audioeffect">
+            <span class="chip-name">${f}</span>
+        </div>
+    `);
+    document.getElementById('audioeffects-environments-chips').innerHTML = renderEffectChips(ae.environments, e => `
+        <div class="chip chip-audioeffect" draggable="true" data-value="<${e}>" data-type="audioeffect">
+            <span class="chip-name">${e}</span>
+        </div>
+    `);
+    document.getElementById('audioeffects-noises-chips').innerHTML = renderEffectChips(ae.noises, n => `
+        <div class="chip chip-audioeffect" draggable="true" data-value="<${n}>" data-type="audioeffect">
+            <span class="chip-name">${n}</span>
+        </div>
+    `);
+    document.getElementById('audioeffects-distances-chips').innerHTML = renderEffectChips(ae.distances, ([name, value]) => `
+        <div class="chip chip-audioeffect" draggable="true" data-value="<${name}>" data-type="audioeffect">
+            <span class="chip-name">${name} (${value})</span>
+        </div>
+    `);
+    document.getElementById('audioeffects-resets-chips').innerHTML = renderEffectChips(ae.resets, r => `
+        <div class="chip chip-audioeffect chip-audioeffect-off" draggable="true" data-value="<${r}>" data-type="audioeffect">
+            <span class="chip-name">${r}</span>
+        </div>
+    `);
 
     // Reinitialize drag/drop and preview after populating
     initDragDrop();
@@ -464,6 +500,19 @@ function updatePlaceholder() {
     }
 }
 
+// Strips known audio effect tags (<phone>, <hall>, ...) so they don't count as spoken text
+function stripAudioEffectTags(text) {
+    const names = [
+        ...AppState.data.audioEffects.filters,
+        ...AppState.data.audioEffects.environments,
+        ...AppState.data.audioEffects.noises,
+        ...AppState.data.audioEffects.distances.map(d => d[0]),
+        ...AppState.data.audioEffects.resets
+    ];
+    const re = new RegExp(`<(${names.map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})>`, 'gi');
+    return text.replace(re, '');
+}
+
 function validateMessage() {
     const text = getComposerText().trim();
     const validation = document.getElementById('validation');
@@ -491,7 +540,7 @@ function validateMessage() {
         const tagContent = match[1].toLowerCase();
         const tagStart = match.index;
         const tagEnd = tagStart + match[0].length;
-        const textBetween = text.substring(lastTagEnd, tagStart).trim();
+        const textBetween = stripAudioEffectTags(text.substring(lastTagEnd, tagStart)).trim();
 
         if (textBetween !== '' && pendingVoice !== null) {
             voiceHasText = true;
@@ -513,7 +562,7 @@ function validateMessage() {
     }
 
     if (pendingVoice !== null) {
-        const textAfter = text.substring(lastTagEnd).trim().replace(/\[[^\]]+\]/g, '').trim();
+        const textAfter = stripAudioEffectTags(text.substring(lastTagEnd)).replace(/\[[^\]]+\]/g, '').trim();
         if (!voiceHasText && textAfter === '') {
             showValidation({ valid: false, error: `Voice "${pendingVoice}" has no text after it` });
             return { valid: false, error: `Voice "${pendingVoice}" has no text after it` };

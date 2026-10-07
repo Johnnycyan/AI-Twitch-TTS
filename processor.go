@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -24,11 +23,14 @@ type Message struct {
 
 // AudioSegment represents a piece of audio with voice and modifiers
 type AudioSegment struct {
-	Text      string
-	Voice     string   // Voice ID
-	VoiceName string   // Voice name for logging
-	Modifiers []string // Modifiers to apply (e.g., "reverb")
-	Effect    string   // Sound effect to play (empty if TTS segment)
+	Text          string
+	Voice         string        // Voice ID
+	VoiceName     string        // Voice name for logging
+	Modifiers     []string      // Modifiers to apply (e.g., "reverb")
+	Effect        string        // Sound effect to play (empty if TTS segment)
+	AudioEffects  *AudioEffects // ElevenLabs v4 audio effects (nil if none)
+	PreviousText  string        // Same-voice text before this segment (context)
+	NextText      string        // Same-voice text after this segment (context)
 }
 
 // tagType represents what kind of tag was found
@@ -76,10 +78,11 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 	currentVoice := defaultVoiceID
 	currentVoiceName := defaultVoice
 	activeModifiers := make(map[string]bool)
+	effects := &AudioEffects{}
 
 	// Regex to find all tags - using () instead of [] to avoid conflicts with ElevenLabs v3/v4 audio tags
-	tagRe := regexp.MustCompile(`\(([^)]+)\)`)
-	matches := tagRe.FindAllStringSubmatchIndex(text, -1)
+	// <> matches only known audio effect tags so unknown angle brackets stay literal text
+	matches := tagRegex.FindAllStringSubmatchIndex(text, -1)
 
 	if len(matches) == 0 {
 		// No tags, just return the text with default voice
@@ -101,7 +104,16 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 	for _, match := range matches {
 		tagStart := match[0]
 		tagEnd := match[1]
-		tagContent := text[match[2]:match[3]] // Content inside brackets
+
+		// Group 1 = () tag content, group 2 = <> audio effect tag content
+		var tagContent string
+		isAngle := false
+		if match[2] != -1 {
+			tagContent = text[match[2]:match[3]]
+		} else {
+			tagContent = text[match[4]:match[5]]
+			isAngle = true
+		}
 
 		// Get text before this tag
 		if tagStart > lastEnd {
@@ -109,6 +121,25 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 			if textBefore != "" {
 				pendingText += " " + textBefore
 			}
+		}
+
+		if isAngle {
+			// Audio effect tag: activate for following text
+			if strings.TrimSpace(pendingText) != "" {
+				segments = append(segments, AudioSegment{
+					Text:         strings.TrimSpace(pendingText),
+					Voice:        currentVoice,
+					VoiceName:    currentVoiceName,
+					Modifiers:    getActiveModifiers(activeModifiers),
+					AudioEffects: effects.snapshot(),
+				})
+				pendingText = ""
+			}
+			if apply, ok := identifyAudioEffectTag(tagContent); ok {
+				apply(effects)
+			}
+			lastEnd = tagEnd
+			continue
 		}
 
 		// Determine tag type
@@ -119,10 +150,11 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 			// If there's pending text, create a segment with current settings
 			if strings.TrimSpace(pendingText) != "" {
 				segments = append(segments, AudioSegment{
-					Text:      strings.TrimSpace(pendingText),
-					Voice:     currentVoice,
-					VoiceName: currentVoiceName,
-					Modifiers: getActiveModifiers(activeModifiers),
+					Text:         strings.TrimSpace(pendingText),
+					Voice:        currentVoice,
+					VoiceName:    currentVoiceName,
+					Modifiers:    getActiveModifiers(activeModifiers),
+					AudioEffects: effects.snapshot(),
 				})
 				pendingText = ""
 			}
@@ -138,10 +170,11 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 			// If there's pending text, create segment before applying new modifier
 			if strings.TrimSpace(pendingText) != "" {
 				segments = append(segments, AudioSegment{
-					Text:      strings.TrimSpace(pendingText),
-					Voice:     currentVoice,
-					VoiceName: currentVoiceName,
-					Modifiers: getActiveModifiers(activeModifiers),
+					Text:         strings.TrimSpace(pendingText),
+					Voice:        currentVoice,
+					VoiceName:    currentVoiceName,
+					Modifiers:    getActiveModifiers(activeModifiers),
+					AudioEffects: effects.snapshot(),
 				})
 				pendingText = ""
 			}
@@ -152,10 +185,11 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 			// If there's pending text, create segment with current modifiers
 			if strings.TrimSpace(pendingText) != "" {
 				segments = append(segments, AudioSegment{
-					Text:      strings.TrimSpace(pendingText),
-					Voice:     currentVoice,
-					VoiceName: currentVoiceName,
-					Modifiers: getActiveModifiers(activeModifiers),
+					Text:         strings.TrimSpace(pendingText),
+					Voice:        currentVoice,
+					VoiceName:    currentVoiceName,
+					Modifiers:    getActiveModifiers(activeModifiers),
+					AudioEffects: effects.snapshot(),
 				})
 				pendingText = ""
 			}
@@ -166,10 +200,11 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 			// If there's pending text, create segment first
 			if strings.TrimSpace(pendingText) != "" {
 				segments = append(segments, AudioSegment{
-					Text:      strings.TrimSpace(pendingText),
-					Voice:     currentVoice,
-					VoiceName: currentVoiceName,
-					Modifiers: getActiveModifiers(activeModifiers),
+					Text:         strings.TrimSpace(pendingText),
+					Voice:        currentVoice,
+					VoiceName:    currentVoiceName,
+					Modifiers:    getActiveModifiers(activeModifiers),
+					AudioEffects: effects.snapshot(),
 				})
 				pendingText = ""
 			}
@@ -201,14 +236,60 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 	// Create final segment if there's pending text
 	if strings.TrimSpace(pendingText) != "" {
 		segments = append(segments, AudioSegment{
-			Text:      strings.TrimSpace(pendingText),
-			Voice:     currentVoice,
-			VoiceName: currentVoiceName,
-			Modifiers: getActiveModifiers(activeModifiers),
+			Text:         strings.TrimSpace(pendingText),
+			Voice:        currentVoice,
+			VoiceName:    currentVoiceName,
+			Modifiers:    getActiveModifiers(activeModifiers),
+			AudioEffects: effects.snapshot(),
 		})
 	}
 
+	assignContext(segments)
+
 	return segments, nil
+}
+
+// assignContext fills PreviousText/NextText on TTS segments split from the
+// same voice, so ElevenLabs can keep continuity across requests.
+// Effect segments are skipped: they neither break runs nor join text.
+func assignContext(segments []AudioSegment) {
+	type runSegment struct {
+		index int
+		text  string
+	}
+	var runs [][]runSegment
+
+	for i, segment := range segments {
+		if segment.Effect != "" {
+			continue
+		}
+		if len(runs) > 0 {
+			lastRun := runs[len(runs)-1]
+			last := lastRun[len(lastRun)-1]
+			if segments[last.index].Voice == segment.Voice {
+				runs[len(runs)-1] = append(lastRun, runSegment{index: i, text: segment.Text})
+				continue
+			}
+		}
+		runs = append(runs, []runSegment{{index: i, text: segment.Text}})
+	}
+
+	for _, run := range runs {
+		if len(run) < 2 {
+			continue
+		}
+		for i, seg := range run {
+			var before, after []string
+			for j := 0; j < i; j++ {
+				before = append(before, run[j].text)
+			}
+			for j := i + 1; j < len(run); j++ {
+				after = append(after, run[j].text)
+			}
+			segments[seg.index].PreviousText = strings.Join(before, " ")
+			segments[seg.index].NextText = strings.Join(after, " ")
+		}
+	}
 }
 
 // identifyTag determines what kind of tag this is
@@ -334,6 +415,9 @@ func ProcessAndPlay(msg Message, kind ...string) error {
 					SimilarityBoost: msg.SimilarityBoost,
 					Style:           style,
 				},
+				AudioEffects: segment.AudioEffects,
+				PreviousText: segment.PreviousText,
+				NextText:     segment.NextText,
 			}
 
 			// Look up v2-specific per-voice settings

@@ -196,6 +196,12 @@
     box-shadow: 0 0 15px var(--yellow-glow);
 }
 
+.toolbox-tab[data-tab="audioeffects"].active {
+    color: var(--orange);
+    background: rgba(251, 146, 60, 0.15);
+    box-shadow: 0 0 15px var(--orange-glow);
+}
+
 .toolbox-content {
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
@@ -322,6 +328,41 @@
     background: rgba(251, 191, 36, 0.25);
     border-color: var(--yellow);
     box-shadow: 0 0 15px var(--yellow-glow);
+}
+
+/* Audio effect chips - Orange */
+.chip-audioeffect {
+    background: rgba(251, 146, 60, 0.15);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+    color: var(--orange);
+}
+
+.chip-audioeffect:hover {
+    background: rgba(251, 146, 60, 0.25);
+    border-color: var(--orange);
+    box-shadow: 0 0 15px var(--orange-glow);
+}
+
+.chip-audioeffect-off {
+    opacity: 0.75;
+    border-style: dashed;
+}
+
+.chip-group {
+    margin-bottom: 1.25rem;
+}
+
+.chip-group:last-child {
+    margin-bottom: 0;
+}
+
+.chip-group-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
 }
 
 /* =============================================

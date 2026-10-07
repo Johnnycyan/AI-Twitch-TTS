@@ -226,6 +226,7 @@ Visit `/create` on your server to access the **TTS Message Creator** - a visual 
 - **Effect chips** (pink) - Add sound effects
 - **Modifier chips** (green) - Apply audio effects like reverb or phone
 - **Tag chips** (yellow) - ElevenLabs v3/v4 expression tags
+- **Audio Effect chips** (orange) - ElevenLabs v4 filter/environment/noise/distance effects
 
 ### Tag Syntax
 
@@ -246,6 +247,23 @@ With ElevenLabs v3/v4, you can add inline expression tags using square brackets 
 `(adam) This is so funny [laughter] I can't stop!`
 
 Common expression tags include: `[laughter]`, `[laughs]`, `[sad]`, `[sigh]`, `[cries]`, `[screams]`, `[gasps]`, `[groans]`, `[sniffs]`, `[whisper]`, `[excited]`, and many more.
+
+### ElevenLabs v4 Audio Effect Tags
+
+With ElevenLabs v4 (default model), you can add audio effects using angle brackets `<>`. Like modifiers, they apply to the text after them until changed or cleared. Anything else inside `<>` is spoken as normal text.
+
+`<phone> <hall> <city> <far> Hello from a phone in a hall with city noise, far away`
+
+| Category | Tags | Reset tag |
+|---|---|---|
+| Filter preset | `<old_radio>`, `<robot>`, `<cheap_microphone>`, `<phone>`, `<low_quality_phone>`, `<bright_phone>` | `<filter-off>` |
+| Environment | `<small_room>`, `<big_room>`, `<hall>`, `<tunnel>`, `<street>`, `<valley>`, `<forest>` | `<environment-off>` |
+| Background noise | `<call_center>`, `<cafe>`, `<city>`, `<keyboard>` | `<noise-off>` |
+| Distance | `<near>` (0.25), `<medium>` (0.6), `<far>` (1.0) | `<distance-off>` |
+
+`<effects-off>` resets all four at once. These tags are ignored when the voice's model is not `eleven_v4`.
+
+When a message is split into multiple requests (by voices, effects, modifiers, or audio effect tags), consecutive requests for the same voice automatically include `previous_text`/`next_text` context so ElevenLabs keeps delivery consistent across the split.
 
 ### Rules
 

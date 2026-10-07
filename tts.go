@@ -72,6 +72,23 @@ type TTSSettings struct {
 	LanguageCode    string
 }
 
+// ttsParams carries everything ttsStream needs for one request body
+type ttsParams struct {
+	text            string
+	modelID         string
+	voiceID         string
+	stability       float64
+	clarity         float64
+	style           float64
+	speed           float64
+	useSpeakerBoost *bool
+	languageCode    string
+	format          string
+	audioEffects    *AudioEffects
+	previousText    string
+	nextText        string
+}
+
 // ElevenLabs API response types
 type elevenLabsSubscription struct {
 	Tier                        string `json:"tier"`
@@ -345,6 +362,11 @@ func generateAudio(request Request) ([]byte, error) {
 
 	logger("Using model: "+model, logDebug, request.Channel)
 
+	// audio_effects is a v4-only feature; drop it for other models
+	if !request.AudioEffects.IsDefault() && model != "eleven_v4" {
+		logger("Dropping audio_effects for non-v4 model "+model, logDebug, request.Channel)
+	}
+
 	// Strip v3/v4 inline audio tags (e.g. [excited], [laughing]) if not using v3/v4 model
 	if model == "eleven_turbo_v2" || model == "eleven_multilingual_v2" {
 		v3TagRe := regexp.MustCompile(`\[[^\]]*\]`)
@@ -353,6 +375,8 @@ func generateAudio(request Request) ([]byte, error) {
 			logger("Stripped v3/v4 tags from text for non-v3/v4 model", logDebug, request.Channel)
 			request.Text = stripped
 		}
+		request.PreviousText = strings.TrimSpace(v3TagRe.ReplaceAllString(request.PreviousText, ""))
+		request.NextText = strings.TrimSpace(v3TagRe.ReplaceAllString(request.NextText, ""))
 	}
 
 	userInfo, err := getUserInfo(ctx)
@@ -398,7 +422,21 @@ func generateAudio(request Request) ([]byte, error) {
 
 	go func() {
 		var err error
-		err = ttsStream(ctx, elevenKey, pipeWriter, request.Text, model, request.Voice.Voice, stability, request.Voice.SimilarityBoost, style, request.Voice.Speed, request.Voice.UseSpeakerBoost, request.Voice.LanguageCode, format)
+		err = ttsStream(ctx, elevenKey, pipeWriter, ttsParams{
+			text:            request.Text,
+			modelID:         model,
+			voiceID:         request.Voice.Voice,
+			stability:       stability,
+			clarity:         request.Voice.SimilarityBoost,
+			style:           style,
+			speed:           request.Voice.Speed,
+			useSpeakerBoost: request.Voice.UseSpeakerBoost,
+			languageCode:    request.Voice.LanguageCode,
+			format:          format,
+			audioEffects:    request.AudioEffects,
+			previousText:    request.PreviousText,
+			nextText:        request.NextText,
+		})
 		if err != nil {
 			// Log detailed parameters when API call fails
 			voiceName, _ := getVoiceName(request.Voice.Voice)
@@ -437,32 +475,52 @@ func generateAudio(request Request) ([]byte, error) {
 // ttsStream is a custom TTS function that handles all models.
 // For v2 (eleven_multilingual_v2): includes style, speed, use_speaker_boost, and language_code.
 // For v3/turbo/flash: excludes style, speed, use_speaker_boost, and language_code.
-func ttsStream(ctx context.Context, apiKey string, w io.Writer, text, modelID, voiceID string, stability, clarity, style, speed float64, useSpeakerBoost *bool, languageCode, format string) error {
-	url := "https://api.elevenlabs.io/v1/text-to-speech/" + voiceID + "/stream"
+// For v4 (eleven_v4): includes audio_effects when any effect is active.
+// previous_text/next_text are included for all models when non-empty.
+func ttsStream(ctx context.Context, apiKey string, w io.Writer, params ttsParams) error {
+	url := "https://api.elevenlabs.io/v1/text-to-speech/" + params.voiceID + "/stream"
 
 	voiceSettings := map[string]interface{}{
-		"stability":        stability,
-		"similarity_boost": clarity,
+		"stability":        params.stability,
+		"similarity_boost": params.clarity,
 	}
 
 	requestBody := map[string]interface{}{
-		"text":           text,
-		"model_id":       modelID,
-		"output_format":  format,
+		"text":           params.text,
+		"model_id":       params.modelID,
+		"output_format":  params.format,
 		"voice_settings": voiceSettings,
 	}
 
+	// Previous/next text context for split requests
+	if params.previousText != "" {
+		requestBody["previous_text"] = params.previousText
+	}
+	if params.nextText != "" {
+		requestBody["next_text"] = params.nextText
+	}
+
 	// v2-only parameters
-	if modelID == "eleven_multilingual_v2" {
-		voiceSettings["style"] = style
-		if speed != 0 {
-			voiceSettings["speed"] = speed
+	if params.modelID == "eleven_multilingual_v2" {
+		voiceSettings["style"] = params.style
+		if params.speed != 0 {
+			voiceSettings["speed"] = params.speed
 		}
-		if useSpeakerBoost != nil {
-			voiceSettings["use_speaker_boost"] = *useSpeakerBoost
+		if params.useSpeakerBoost != nil {
+			voiceSettings["use_speaker_boost"] = *params.useSpeakerBoost
 		}
-		if languageCode != "" {
-			requestBody["language_code"] = languageCode
+		if params.languageCode != "" {
+			requestBody["language_code"] = params.languageCode
+		}
+	}
+
+	// v4-only parameters
+	if params.modelID == "eleven_v4" && !params.audioEffects.IsDefault() {
+		requestBody["audio_effects"] = map[string]interface{}{
+			"filter_preset_id":    orNull(params.audioEffects.FilterPresetID),
+			"environment_id":      orNull(params.audioEffects.EnvironmentID),
+			"background_noise_id": orNull(params.audioEffects.BackgroundNoiseID),
+			"distance":            params.audioEffects.Distance,
 		}
 	}
 

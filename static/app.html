@@ -63,6 +63,7 @@
                             <button class="toolbox-tab" data-tab="effects">Effects</button>
                             <button class="toolbox-tab" data-tab="modifiers">Modifiers</button>
                             <button class="toolbox-tab" data-tab="tags">Tags</button>
+                            <button class="toolbox-tab" data-tab="audioeffects">Audio Effects</button>
                         </div>
                         <div class="volume-control">
                             <svg class="volume-icon" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
@@ -92,6 +93,33 @@
                                 of.
                             </p>
                             <div class="chip-grid" id="tags-chips"></div>
+                        </div>
+                        <div id="panel-audioeffects" class="chip-panel">
+                            <p class="panel-info">
+                                💡 ElevenLabs v4 audio effects. Drag tags into your message — they apply to the text
+                                after them, like modifiers. e.g. <code>&lt;phone&gt; &lt;hall&gt; &lt;far&gt;
+                                    hello</code>
+                            </p>
+                            <div class="chip-group">
+                                <p class="chip-group-title">Filter Presets</p>
+                                <div class="chip-grid" id="audioeffects-filters-chips"></div>
+                            </div>
+                            <div class="chip-group">
+                                <p class="chip-group-title">Environments</p>
+                                <div class="chip-grid" id="audioeffects-environments-chips"></div>
+                            </div>
+                            <div class="chip-group">
+                                <p class="chip-group-title">Background Noise</p>
+                                <div class="chip-grid" id="audioeffects-noises-chips"></div>
+                            </div>
+                            <div class="chip-group">
+                                <p class="chip-group-title">Distance</p>
+                                <div class="chip-grid" id="audioeffects-distances-chips"></div>
+                            </div>
+                            <div class="chip-group">
+                                <p class="chip-group-title">Reset</p>
+                                <div class="chip-grid" id="audioeffects-resets-chips"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
