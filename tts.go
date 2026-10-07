@@ -14,17 +14,17 @@ import (
 )
 
 var (
-	voices              []Voice
-	voiceModels         []VoiceModel
-	voiceStyles         []VoiceStyle
-	voiceSpeeds         []VoiceSpeed
-	voiceSpeakerBoosts  []VoiceSpeakerBoost
-	voiceLanguages      []VoiceLanguage
-	voiceStabilities    []VoiceStability
-	defaultVoice        string
-	defaultVoiceID      string
-	elevenKey           string
-	ttsKey              string
+	voices             []Voice
+	voiceModels        []VoiceModel
+	voiceStyles        []VoiceStyle
+	voiceSpeeds        []VoiceSpeed
+	voiceSpeakerBoosts []VoiceSpeakerBoost
+	voiceLanguages     []VoiceLanguage
+	voiceStabilities   []VoiceStability
+	defaultVoice       string
+	defaultVoiceID     string
+	elevenKey          string
+	ttsKey             string
 )
 
 type Voice struct {
@@ -74,10 +74,10 @@ type TTSSettings struct {
 
 // ElevenLabs API response types
 type elevenLabsSubscription struct {
-	Tier                       string `json:"tier"`
-	CharacterCount             int    `json:"character_count"`
-	CharacterLimit             int    `json:"character_limit"`
-	NextCharacterCountResetUnix int   `json:"next_character_count_reset_unix"`
+	Tier                        string `json:"tier"`
+	CharacterCount              int    `json:"character_count"`
+	CharacterLimit              int    `json:"character_limit"`
+	NextCharacterCountResetUnix int    `json:"next_character_count_reset_unix"`
 }
 
 type elevenLabsUserInfo struct {
@@ -323,7 +323,7 @@ func generateAudio(request Request) ([]byte, error) {
 	var model string
 	voiceModel, err := getVoiceModel(request.Voice.Voice)
 	if err != nil {
-		model = "eleven_v3"
+		model = "eleven_v4"
 	}
 
 	if voiceModel != "" {
@@ -334,21 +334,23 @@ func generateAudio(request Request) ([]byte, error) {
 			model = "eleven_multilingual_v2"
 		case "v3":
 			model = "eleven_v3"
+		case "v4":
+			model = "eleven_v4"
 		default:
-			model = "eleven_v3"
+			model = "eleven_v4"
 		}
 	} else {
-		model = "eleven_v3"
+		model = "eleven_v4"
 	}
 
 	logger("Using model: "+model, logDebug, request.Channel)
 
-	// Strip v3 inline audio tags (e.g. [excited], [laughing]) if not using v3 model
-	if model != "eleven_v3" {
+	// Strip v3/v4 inline audio tags (e.g. [excited], [laughing]) if not using v3/v4 model
+	if model == "eleven_turbo_v2" || model == "eleven_multilingual_v2" {
 		v3TagRe := regexp.MustCompile(`\[[^\]]*\]`)
 		stripped := strings.TrimSpace(v3TagRe.ReplaceAllString(request.Text, ""))
 		if stripped != request.Text {
-			logger("Stripped v3 tags from text for non-v3 model", logDebug, request.Channel)
+			logger("Stripped v3/v4 tags from text for non-v3/v4 model", logDebug, request.Channel)
 			request.Text = stripped
 		}
 	}
