@@ -44,7 +44,7 @@ const (
 
 // ParseMessage parses a text message into audio segments
 // Supports both new syntax (voicename) and legacy (v-voicename), (e-effectname)
-// Note: We use () instead of [] because ElevenLabs v3 uses [] for inline audio tags
+// Note: We use () instead of [] because ElevenLabs v3/v4 uses [] for inline audio tags
 func ParseMessage(msg Message, kind ...string) ([]AudioSegment, error) {
 	text := msg.Text
 	if text == "" {
@@ -77,7 +77,7 @@ func parseTextToSegments(text string, defaultVoiceID string, kind ...string) ([]
 	currentVoiceName := defaultVoice
 	activeModifiers := make(map[string]bool)
 
-	// Regex to find all tags - using () instead of [] to avoid conflicts with ElevenLabs v3 audio tags
+	// Regex to find all tags - using () instead of [] to avoid conflicts with ElevenLabs v3/v4 audio tags
 	tagRe := regexp.MustCompile(`\(([^)]+)\)`)
 	matches := tagRe.FindAllStringSubmatchIndex(text, -1)
 

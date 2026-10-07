@@ -225,7 +225,7 @@ Visit `/create` on your server to access the **TTS Message Creator** - a visual 
 - **Voice chips** (cyan) - Switch between voices
 - **Effect chips** (pink) - Add sound effects
 - **Modifier chips** (green) - Apply audio effects like reverb or phone
-- **Tag chips** (yellow) - ElevenLabs v3 expression tags
+- **Tag chips** (yellow) - ElevenLabs v3/v4 expression tags
 
 ### Tag Syntax
 
@@ -239,9 +239,9 @@ Tags use parentheses `()` for voices, effects, and modifiers:
 
 `(phone)` - Modifier tag: adds a telephone effect to the following text.
 
-### ElevenLabs v3 Expression Tags
+### ElevenLabs v3/v4 Expression Tags
 
-With ElevenLabs v3, you can add inline expression tags using square brackets `[]`:
+With ElevenLabs v3/v4, you can add inline expression tags using square brackets `[]`:
 
 `(adam) This is so funny [laughter] I can't stop!`
 
