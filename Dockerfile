@@ -18,10 +18,11 @@ RUN go build -ldflags="-s -w" -o main .
 # RUN upx --brute main
 
 # Final stage
-FROM alpine:3.20
+FROM alpine:3.22
 
-# Install ffmpeg
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg; explicitly upgrade the CA bundle so the eMudhra/emSign
+# distrust (ca-certificates 20261020) is picked up even on a stale base image
+RUN apk upgrade --no-cache ca-certificates-bundle && apk add --no-cache ffmpeg
 
 WORKDIR /app
 
