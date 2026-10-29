@@ -23,14 +23,14 @@ type Message struct {
 
 // AudioSegment represents a piece of audio with voice and modifiers
 type AudioSegment struct {
-	Text          string
-	Voice         string        // Voice ID
-	VoiceName     string        // Voice name for logging
-	Modifiers     []string      // Modifiers to apply (e.g., "reverb")
-	Effect        string        // Sound effect to play (empty if TTS segment)
-	AudioEffects  *AudioEffects // ElevenLabs v4 audio effects (nil if none)
-	PreviousText  string        // Same-voice text before this segment (context)
-	NextText      string        // Same-voice text after this segment (context)
+	Text         string
+	Voice        string        // Voice ID
+	VoiceName    string        // Voice name for logging
+	Modifiers    []string      // Modifiers to apply (e.g., "reverb")
+	Effect       string        // Sound effect to play (empty if TTS segment)
+	AudioEffects *AudioEffects // ElevenLabs v4 audio effects (nil if none)
+	PreviousText string        // Same-voice text before this segment (context)
+	NextText     string        // Same-voice text after this segment (context)
 }
 
 // tagType represents what kind of tag was found
@@ -405,6 +405,9 @@ func ProcessAndPlay(msg Message, kind ...string) error {
 				stability = voiceStability
 			}
 
+			// Defaults to 1.0 when not set for the voice
+			cloneStrength, _ := getVoiceCloneStrength(segment.Voice)
+
 			ttsRequest := Request{
 				Channel: msg.Channel,
 				Time:    requestTime,
@@ -413,6 +416,7 @@ func ProcessAndPlay(msg Message, kind ...string) error {
 					Voice:           segment.Voice,
 					Stability:       stability,
 					SimilarityBoost: msg.SimilarityBoost,
+					CloneStrength:   cloneStrength,
 					Style:           style,
 				},
 				AudioEffects: segment.AudioEffects,

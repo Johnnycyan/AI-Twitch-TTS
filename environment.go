@@ -60,6 +60,7 @@ func setupENV() {
 	setupVoiceSpeakerBoosts()
 	setupVoiceLanguages()
 	setupVoiceStabilities()
+	setupVoiceCloneStrengths()
 	setupVoiceModifiers()
 	setupDB()
 }

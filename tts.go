@@ -14,17 +14,18 @@ import (
 )
 
 var (
-	voices             []Voice
-	voiceModels        []VoiceModel
-	voiceStyles        []VoiceStyle
-	voiceSpeeds        []VoiceSpeed
-	voiceSpeakerBoosts []VoiceSpeakerBoost
-	voiceLanguages     []VoiceLanguage
-	voiceStabilities   []VoiceStability
-	defaultVoice       string
-	defaultVoiceID     string
-	elevenKey          string
-	ttsKey             string
+	voices              []Voice
+	voiceModels         []VoiceModel
+	voiceStyles         []VoiceStyle
+	voiceSpeeds         []VoiceSpeed
+	voiceSpeakerBoosts  []VoiceSpeakerBoost
+	voiceLanguages      []VoiceLanguage
+	voiceStabilities    []VoiceStability
+	voiceCloneStrengths []VoiceCloneStrength
+	defaultVoice        string
+	defaultVoiceID      string
+	elevenKey           string
+	ttsKey              string
 )
 
 type Voice struct {
@@ -62,10 +63,16 @@ type VoiceStability struct {
 	Stability string `json:"stability"`
 }
 
+type VoiceCloneStrength struct {
+	Name          string `json:"name"`
+	CloneStrength string `json:"clone_strength"`
+}
+
 type TTSSettings struct {
 	Voice           string
 	Stability       float64
 	SimilarityBoost float64
+	CloneStrength   float64
 	Style           float64
 	Speed           float64
 	UseSpeakerBoost *bool
@@ -79,6 +86,7 @@ type ttsParams struct {
 	voiceID         string
 	stability       float64
 	clarity         float64
+	cloneStrength   float64
 	style           float64
 	speed           float64
 	useSpeakerBoost *bool
@@ -181,6 +189,18 @@ func setupVoiceStabilities() {
 	err := json.Unmarshal([]byte(voiceStabilitiesEnv), &voiceStabilities)
 	if err != nil {
 		logger("Error unmarshalling voice stabilities: "+err.Error(), logError, "Universal")
+		return
+	}
+}
+
+func setupVoiceCloneStrengths() {
+	voiceCloneStrengthsEnv := os.Getenv("VOICE_CLONE_STRENGTHS")
+	if voiceCloneStrengthsEnv == "" {
+		return
+	}
+	err := json.Unmarshal([]byte(voiceCloneStrengthsEnv), &voiceCloneStrengths)
+	if err != nil {
+		logger("Error unmarshalling voice clone strengths: "+err.Error(), logError, "Universal")
 		return
 	}
 }
@@ -331,6 +351,27 @@ func getVoiceStability(ID string) (float64, error) {
 	return 0, fmt.Errorf("Voice stability not found")
 }
 
+func getVoiceCloneStrength(ID string) (float64, error) {
+	voice, err := getVoiceName(ID)
+	if err != nil {
+		logger("Error getting voice name: "+err.Error(), logError, "Universal")
+		return 1.0, err
+	}
+	logger("Getting voice clone strength for voice: "+voice, logDebug, "Universal")
+	for _, v := range voiceCloneStrengths {
+		if strings.EqualFold(v.Name, voice) {
+			cloneStrength, err := strconv.ParseFloat(v.CloneStrength, 64)
+			if err != nil {
+				logger("Error parsing voice clone strength: "+err.Error(), logError, "Universal")
+				return 1.0, err
+			}
+			return cloneStrength, nil
+		}
+	}
+	logger("Voice clone strength not found", logDebug, "Universal")
+	return 1.0, fmt.Errorf("Voice clone strength not found")
+}
+
 func generateAudio(request Request) ([]byte, error) {
 	logger("Generating TTS audio for text: "+request.Text, logDebug, request.Channel)
 
@@ -430,6 +471,7 @@ func generateAudio(request Request) ([]byte, error) {
 			voiceID:         request.Voice.Voice,
 			stability:       stability,
 			clarity:         request.Voice.SimilarityBoost,
+			cloneStrength:   request.Voice.CloneStrength,
 			style:           style,
 			speed:           request.Voice.Speed,
 			useSpeakerBoost: request.Voice.UseSpeakerBoost,
@@ -519,6 +561,9 @@ func ttsStream(ctx context.Context, apiKey string, w io.Writer, params ttsParams
 	}
 
 	// v4-only parameters
+	if params.modelID == "eleven_v4" {
+		voiceSettings["clone_strength"] = params.cloneStrength
+	}
 	if params.modelID == "eleven_v4" && !params.audioEffects.IsDefault() {
 		requestBody["audio_effects"] = map[string]interface{}{
 			"filter_preset_id":    orNull(params.audioEffects.FilterPresetID),
