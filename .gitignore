@@ -39,3 +39,5 @@ AI-Twitch-TTS
 
 !static/
 !Dockerfile
+!.cursor/rules/
+!.windsurf/rules/
